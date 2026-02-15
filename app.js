@@ -260,8 +260,158 @@ if (signinForm) {
 
 const createProfileForm = document.querySelector("[data-create-profile-form]");
 if (createProfileForm) {
+  const languagePicker = createProfileForm.querySelector("#profile-languages");
+  const languageList = createProfileForm.querySelector("[data-languages-list]");
+  const languageInputs = createProfileForm.querySelector(
+    "[data-languages-hidden-inputs]"
+  );
+  const languageError = createProfileForm.querySelector("[data-languages-error]");
+  const lookingForPicker = createProfileForm.querySelector("#profile-looking-for");
+  const lookingForList = createProfileForm.querySelector("[data-looking-for-list]");
+  const lookingForInputs = createProfileForm.querySelector(
+    "[data-looking-for-hidden-inputs]"
+  );
+  const lookingForError = createProfileForm.querySelector("[data-looking-for-error]");
+  const languageSelections = new Map();
+  const lookingForSelections = new Map();
+
+  const renderLanguageSelections = () => {
+    if (!languageList || !languageInputs) {
+      return;
+    }
+    languageList.innerHTML = "";
+    languageInputs.innerHTML = "";
+
+    languageSelections.forEach((label, value) => {
+      const tag = document.createElement("span");
+      tag.className = "selected-tag";
+      tag.textContent = label;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "selected-tag-remove";
+      removeButton.textContent = "x";
+      removeButton.setAttribute("aria-label", `Remove ${label}`);
+      removeButton.addEventListener("click", () => {
+        languageSelections.delete(value);
+        renderLanguageSelections();
+      });
+
+      tag.appendChild(removeButton);
+      languageList.appendChild(tag);
+
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "languages[]";
+      input.value = value;
+      languageInputs.appendChild(input);
+    });
+
+    if (languageError) {
+      languageError.hidden = languageSelections.size > 0;
+    }
+  };
+
+  const renderLookingForSelections = () => {
+    if (!lookingForList || !lookingForInputs) {
+      return;
+    }
+    lookingForList.innerHTML = "";
+    lookingForInputs.innerHTML = "";
+
+    lookingForSelections.forEach((label, value) => {
+      const tag = document.createElement("span");
+      tag.className = "selected-tag";
+      tag.textContent = label;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "selected-tag-remove";
+      removeButton.textContent = "x";
+      removeButton.setAttribute("aria-label", `Remove ${label}`);
+      removeButton.addEventListener("click", () => {
+        lookingForSelections.delete(value);
+        renderLookingForSelections();
+      });
+
+      tag.appendChild(removeButton);
+      lookingForList.appendChild(tag);
+
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "lookingFor[]";
+      input.value = value;
+      lookingForInputs.appendChild(input);
+    });
+
+    if (lookingForError) {
+      lookingForError.hidden = lookingForSelections.size > 0;
+    }
+  };
+
+  if (lookingForPicker) {
+    lookingForPicker.addEventListener("change", () => {
+      const value = lookingForPicker.value;
+      if (!value) {
+        return;
+      }
+      const label =
+        lookingForPicker.options[lookingForPicker.selectedIndex]?.text || value;
+      if (!lookingForSelections.has(value)) {
+        lookingForSelections.set(value, label);
+      }
+      lookingForPicker.value = "";
+      if (lookingForError) {
+        lookingForError.hidden = lookingForSelections.size > 0;
+      }
+      renderLookingForSelections();
+    });
+  }
+
+  if (languagePicker) {
+    languagePicker.addEventListener("change", () => {
+      const value = languagePicker.value;
+      if (!value) {
+        return;
+      }
+      const label = languagePicker.options[languagePicker.selectedIndex]?.text || value;
+      if (!languageSelections.has(value)) {
+        languageSelections.set(value, label);
+      }
+      languagePicker.value = "";
+      if (languageError) {
+        languageError.hidden = languageSelections.size > 0;
+      }
+      renderLanguageSelections();
+    });
+  }
+
+  renderLanguageSelections();
+  renderLookingForSelections();
+
   createProfileForm.addEventListener("submit", (event) => {
     event.preventDefault();
+    const hasLanguage = languageSelections.size > 0;
+    const hasLookingFor = lookingForSelections.size > 0;
+    if (languageError) {
+      languageError.hidden = hasLanguage;
+    }
+    if (!hasLanguage) {
+      if (languageError) {
+        languageError.hidden = false;
+      }
+      return;
+    }
+    if (lookingForError) {
+      lookingForError.hidden = hasLookingFor;
+    }
+    if (!hasLookingFor) {
+      if (lookingForError) {
+        lookingForError.hidden = false;
+      }
+      return;
+    }
+
     const fileInput = createProfileForm.querySelector(
       "[data-profile-photo-input]"
     );
@@ -283,6 +433,22 @@ if (createProfileForm) {
 
 const locationField = document.querySelector("[data-location-field]");
 if (locationField && "geolocation" in navigator) {
+  const locationNote = locationField
+    .closest(".form-row")
+    ?.querySelector(".form-note");
+  if (locationNote) {
+    locationNote.textContent = "Detecting your location...";
+  }
+
+  const enableManualLocationEntry = (message) => {
+    locationField.readOnly = false;
+    locationField.placeholder = "Enter your city";
+    if (locationNote) {
+      locationNote.textContent = message;
+      locationNote.classList.add("form-error");
+    }
+  };
+
   navigator.geolocation.getCurrentPosition(
     (position) => {
       if (locationField.value) {
@@ -313,19 +479,34 @@ if (locationField && "geolocation" in navigator) {
             address.county;
           if (city) {
             locationField.value = city;
+            if (locationNote) {
+              locationNote.textContent = "Location auto-filled from your device.";
+              locationNote.classList.remove("form-error");
+            }
             return;
           }
           locationField.value =
             data && data.display_name ? data.display_name : "Unknown location";
+          if (locationNote) {
+            locationNote.textContent = "Location auto-filled from your device.";
+            locationNote.classList.remove("form-error");
+          }
         })
         .catch(() => {
-          const lat = latitude.toFixed(5);
-          const lng = longitude.toFixed(5);
-          locationField.value = `Lat ${lat}, Lng ${lng}`;
+          enableManualLocationEntry(
+            "Could not detect your city automatically. Enter location manually."
+          );
         });
     },
-    () => {}
+    () => {
+      enableManualLocationEntry(
+        "Location permission denied. Enter your location manually."
+      );
+    }
   );
+} else if (locationField) {
+  locationField.readOnly = false;
+  locationField.placeholder = "Enter your city";
 }
 
 const photoInput = document.querySelector("[data-profile-photo-input]");
@@ -378,4 +559,66 @@ if (photoInput && photoPreviews && primaryPhoto) {
     }
     renderPreviews(files);
   });
+}
+
+const bioField = document.querySelector("#profile-bio");
+const bioEmojiButtons = document.querySelectorAll("[data-bio-emoji]");
+if (bioField && bioEmojiButtons.length) {
+  bioEmojiButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const emoji = button.getAttribute("data-bio-emoji");
+      if (!emoji) return;
+      const start = bioField.selectionStart || bioField.value.length;
+      const end = bioField.selectionEnd || bioField.value.length;
+      const prefix = bioField.value.slice(0, start);
+      const suffix = bioField.value.slice(end);
+      const spacer = prefix && !prefix.endsWith(" ") ? " " : "";
+      bioField.value = `${prefix}${spacer}${emoji} ${suffix}`.trimStart();
+      const cursor = prefix.length + spacer.length + emoji.length + 1;
+      bioField.focus();
+      bioField.setSelectionRange(cursor, cursor);
+    });
+  });
+}
+
+const tribeSelect = document.querySelector("#profile-tribe");
+const otherTribeRow = document.querySelector("[data-other-tribe-row]");
+const otherTribeField = document.querySelector("#profile-tribe-other");
+if (tribeSelect && otherTribeRow && otherTribeField) {
+  const syncOtherTribeField = () => {
+    const show = tribeSelect.value === "other";
+    otherTribeRow.hidden = !show;
+    otherTribeRow.classList.toggle("is-hidden", !show);
+    otherTribeField.required = show;
+    otherTribeField.disabled = !show;
+    if (!show) {
+      otherTribeField.value = "";
+    } else {
+      otherTribeField.focus();
+    }
+  };
+
+  tribeSelect.addEventListener("change", syncOtherTribeField);
+  syncOtherTribeField();
+}
+
+const kidsSelect = document.querySelector("#profile-kids");
+const kidsCountRow = document.querySelector("[data-kids-count-row]");
+const kidsCountField = document.querySelector("#profile-kids-count");
+if (kidsSelect && kidsCountRow && kidsCountField) {
+  const syncKidsCountField = () => {
+    const show = kidsSelect.value === "have-kids";
+    kidsCountRow.hidden = !show;
+    kidsCountRow.classList.toggle("is-hidden", !show);
+    kidsCountField.required = show;
+    kidsCountField.disabled = !show;
+    if (!show) {
+      kidsCountField.value = "";
+    } else {
+      kidsCountField.focus();
+    }
+  };
+
+  kidsSelect.addEventListener("change", syncKidsCountField);
+  syncKidsCountField();
 }

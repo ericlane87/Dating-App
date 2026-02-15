@@ -504,15 +504,93 @@ main {
   gap: 16px;
 }
 
+.profile-form {
+  width: min(760px, 94vw);
+  padding: 28px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 45, 45, 0.06), rgba(255, 45, 45, 0)),
+    var(--panel);
+}
+
+.profile-form .page-title {
+  margin-bottom: 6px;
+}
+
+.profile-form .form-row {
+  gap: 8px;
+}
+
 .form-row {
   display: grid;
   gap: 6px;
+}
+
+.form-row.is-hidden,
+[data-other-tribe-row][hidden] {
+  display: none !important;
 }
 
 .form-links {
   display: flex;
   gap: 16px;
   justify-content: center;
+}
+
+.multi-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.selected-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.selected-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 45, 0.45);
+  background: rgba(255, 45, 45, 0.12);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.selected-tag-remove {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+
+.choice-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: #0c0c0c;
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.choice-pill:hover {
+  border-color: rgba(255, 45, 45, 0.5);
+}
+
+.choice-pill input[type="checkbox"] {
+  accent-color: var(--red);
 }
 
 .photo-preview {
@@ -545,6 +623,7 @@ main {
 
 label {
   font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
 input {
@@ -556,10 +635,80 @@ input {
   color: var(--text);
 }
 
+textarea {
+  width: 100%;
+  min-height: 128px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.45;
+  resize: vertical;
+  background: #0c0c0c;
+  color: var(--text);
+}
+
+select {
+  width: 100%;
+  padding: 12px 44px 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  font-size: 16px;
+  background-color: #0c0c0c;
+  color: var(--text);
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #ff5e5e 50%),
+    linear-gradient(135deg, #ff5e5e 50%, transparent 50%),
+    linear-gradient(to right, rgba(255, 45, 45, 0.2), rgba(255, 45, 45, 0.05));
+  background-position:
+    calc(100% - 20px) calc(50% - 3px),
+    calc(100% - 14px) calc(50% - 3px),
+    calc(100% - 38px) 50%;
+  background-size:
+    6px 6px,
+    6px 6px,
+    1px 22px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+select[multiple] {
+  min-height: 174px;
+  padding: 8px;
+  appearance: auto;
+  background-image: none;
+  background-color: #0c0c0c;
+}
+
+select[multiple] option {
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 2px 0;
+}
+
 input:focus {
   outline: none;
   border-color: rgba(255, 45, 45, 0.6);
   box-shadow: 0 0 0 3px rgba(255, 45, 45, 0.2);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: rgba(255, 45, 45, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 45, 45, 0.2);
+}
+
+select:focus {
+  outline: none;
+  border-color: rgba(255, 45, 45, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 45, 45, 0.2);
+}
+
+select option {
+  background: #121212;
+  color: var(--text);
 }
 
 .form-error {
@@ -571,6 +720,29 @@ input:focus {
 .form-note {
   margin: 0;
   color: var(--muted);
+}
+
+.emoji-picks {
+  display: none;
+}
+
+.emoji-picks-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.emoji-chip {
+  border: 1px solid var(--stroke);
+  background: #0c0c0c;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.emoji-chip:hover {
+  border-color: rgba(255, 45, 45, 0.5);
 }
 
 .page-title {
@@ -611,5 +783,19 @@ input:focus {
 
   .hero-split {
     grid-template-columns: 1fr;
+  }
+
+  .profile-form {
+    padding: 20px;
+    border-radius: 16px;
+  }
+}
+
+@media (min-width: 900px) {
+  .emoji-picks {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }

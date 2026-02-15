@@ -10,7 +10,12 @@
   </head>
   <body data-page="create-profile">
     <main class="centered-main">
-      <form class="card form" action="#" method="post" data-create-profile-form>
+      <form
+        class="card form profile-form"
+        action="#"
+        method="post"
+        data-create-profile-form
+      >
         <h1 class="page-title">Create profile</h1>
         <div class="form-row">
           <label for="profile-name">Display name</label>
@@ -29,7 +34,268 @@
         </div>
         <div class="form-row">
           <label for="profile-bio">Bio</label>
-          <input id="profile-bio" name="bio" required />
+          <textarea
+            id="profile-bio"
+            name="bio"
+            rows="5"
+            maxlength="400"
+            placeholder="Share a little about yourself, what you enjoy, and what you're looking for..."
+            required
+          ></textarea>
+          <div class="emoji-picks" data-bio-emojis>
+            <span class="emoji-picks-label">Quick emojis:</span>
+            <button type="button" class="emoji-chip" data-bio-emoji="😊">😊</button>
+            <button type="button" class="emoji-chip" data-bio-emoji="❤️">❤️</button>
+            <button type="button" class="emoji-chip" data-bio-emoji="🙏">🙏</button>
+            <button type="button" class="emoji-chip" data-bio-emoji="🎵">🎵</button>
+            <button type="button" class="emoji-chip" data-bio-emoji="🍲">🍲</button>
+            <button type="button" class="emoji-chip" data-bio-emoji="✈️">✈️</button>
+            <button type="button" class="emoji-chip" data-bio-emoji="💬">💬</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="profile-profession">Job / Profession (optional)</label>
+          <input
+            id="profile-profession"
+            name="profession"
+            type="text"
+            placeholder="e.g. Software Engineer"
+          />
+        </div>
+        <div class="form-row">
+          <label for="profile-education">Education (optional)</label>
+          <select id="profile-education" name="education">
+            <option value="">Select education level</option>
+            <option value="no-formal-education">No formal education</option>
+            <option value="primary-school">Primary school</option>
+            <option value="junior-secondary">Junior Secondary School (JSS)</option>
+            <option value="senior-secondary">Senior Secondary School (SSCE/WAEC/NECO)</option>
+            <option value="nce-ond">NCE / OND</option>
+            <option value="hnd">HND</option>
+            <option value="bachelors">Bachelor's degree</option>
+            <option value="pgd-masters">PGD / Master's degree</option>
+            <option value="phd">PhD / Doctorate</option>
+            <option value="islamic-quranic">Islamic/Quranic education</option>
+            <option value="vocational-apprenticeship">Vocational/Apprenticeship</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="profile-gender">Gender</label>
+          <select id="profile-gender" name="gender" required>
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="profile-height-cm">Height (optional, cm)</label>
+          <input
+            id="profile-height-cm"
+            name="heightCm"
+            type="number"
+            min="100"
+            max="250"
+            step="1"
+            placeholder="e.g. 175"
+          />
+          <p class="form-note">Metric system only (centimeters).</p>
+        </div>
+        <div class="form-row">
+          <label for="profile-weight-kg">Weight (optional, kg)</label>
+          <input
+            id="profile-weight-kg"
+            name="weightKg"
+            type="number"
+            min="30"
+            max="300"
+            step="1"
+            placeholder="e.g. 72"
+          />
+          <p class="form-note">Metric system only (kilograms).</p>
+        </div>
+        <div class="form-row">
+          <label for="profile-religion">Religion</label>
+          <select id="profile-religion" name="religion" required>
+            <option value="">Select religion</option>
+            <option value="christian">Christian</option>
+            <option value="muslim">Muslim</option>
+            <option value="traditional">Traditional</option>
+            <option value="other">Other</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="profile-looking-for">Looking for</label>
+          <select id="profile-looking-for" name="lookingForPicker">
+            <option value="">Select what you're looking for</option>
+            <option value="short-term">Short-term</option>
+            <option value="long-term">Long-term</option>
+            <option value="fun">Fun</option>
+            <option value="intimacy">Intimacy</option>
+            <option value="dating">Dating</option>
+            <option value="marriage">Marriage</option>
+            <option value="life-partner">Life partner</option>
+          </select>
+          <div class="selected-list" data-looking-for-list></div>
+          <div data-looking-for-hidden-inputs></div>
+          <p class="form-note">Each selection is added to your list below.</p>
+          <p class="form-error" data-looking-for-error hidden>
+            Add at least one option.
+          </p>
+        </div>
+        <div class="form-row">
+          <label for="profile-smoking">Smoking (optional)</label>
+          <select id="profile-smoking" name="smoking">
+            <option value="">Select smoking status</option>
+            <option value="no">Non-smoker</option>
+            <option value="occasionally">Occasionally</option>
+            <option value="yes">Smoker</option>
+            <option value="trying-to-quit">Trying to quit</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="profile-drinking">Drinking (optional)</label>
+          <select id="profile-drinking" name="drinking">
+            <option value="">Select drinking status</option>
+            <option value="no">Non-drinker</option>
+            <option value="occasionally">Occasionally</option>
+            <option value="socially">Socially</option>
+            <option value="yes">Drinker</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="profile-kids">Kids (optional)</label>
+          <select id="profile-kids" name="kids">
+            <option value="">Select kids preference</option>
+            <option value="none">I don't have kids</option>
+            <option value="have-kids">I have kids</option>
+            <option value="want-kids">I want kids</option>
+            <option value="dont-want-kids">I don't want kids</option>
+            <option value="open-to-kids">Open to kids</option>
+          </select>
+        </div>
+        <div class="form-row is-hidden" data-kids-count-row hidden>
+          <label for="profile-kids-count">How many kids?</label>
+          <input
+            id="profile-kids-count"
+            name="kidsCount"
+            type="number"
+            min="1"
+            max="20"
+            step="1"
+            placeholder="e.g. 2"
+          />
+        </div>
+        <div class="form-row">
+          <label for="profile-languages">Languages</label>
+          <select id="profile-languages" name="languagePicker">
+            <option value="">Select a language spoken in Nigeria</option>
+            <option value="english">English</option>
+            <option value="nigerian-pidgin">Nigerian Pidgin</option>
+            <option value="hausa">Hausa</option>
+            <option value="yoruba">Yoruba</option>
+            <option value="igbo">Igbo</option>
+            <option value="fulfulde">Fulfulde</option>
+            <option value="kanuri">Kanuri</option>
+            <option value="tiv">Tiv</option>
+            <option value="ijaw">Ijaw</option>
+            <option value="ibibio">Ibibio</option>
+            <option value="nupe">Nupe</option>
+            <option value="idoma">Idoma</option>
+            <option value="urhobo">Urhobo</option>
+            <option value="efik">Efik</option>
+            <option value="igala">Igala</option>
+            <option value="ebira">Ebira</option>
+            <option value="gbagyi">Gbagyi</option>
+            <option value="itsekiri">Itsekiri</option>
+            <option value="isoko">Isoko</option>
+            <option value="edo">Edo</option>
+            <option value="jukun">Jukun</option>
+          </select>
+          <div class="selected-list" data-languages-list></div>
+          <div data-languages-hidden-inputs></div>
+          <p class="form-note">
+            Listed roughly by known speakers in Nigeria (highest to lower). Each selection is added to your list.
+          </p>
+          <p class="form-error" data-languages-error hidden>Select at least one language.</p>
+        </div>
+        <div class="form-row">
+          <label for="profile-tribe">Tribe</label>
+          <select id="profile-tribe" name="tribe" required>
+            <option value="">Select tribe</option>
+            <option value="other">Other</option>
+            <option value="hausa-fulani">Hausa-Fulani</option>
+            <option value="yoruba">Yoruba</option>
+            <option value="igbo">Igbo</option>
+            <option value="ijaw">Ijaw</option>
+            <option value="kanuri">Kanuri</option>
+            <option value="ibibio">Ibibio</option>
+            <option value="tiv">Tiv</option>
+            <option value="edo-bini">Edo/Bini</option>
+            <option value="nupe">Nupe</option>
+            <option value="gbagyi">Gbagyi (Gbari)</option>
+            <option value="idoma">Idoma</option>
+            <option value="igala">Igala</option>
+            <option value="urhobo">Urhobo</option>
+            <option value="itsekiri">Itsekiri</option>
+            <option value="ebira">Ebira</option>
+            <option value="jukun">Jukun</option>
+            <option value="annang">Annang</option>
+            <option value="efik">Efik</option>
+            <option value="bachama">Bachama</option>
+            <option value="bura">Bura</option>
+            <option value="ngas">Ngas</option>
+            <option value="ukwuani">Ukwuani</option>
+            <option value="isoko">Isoko</option>
+            <option value="ogoni">Ogoni</option>
+            <option value="kalabari">Kalabari</option>
+            <option value="ikwerre">Ikwerre</option>
+            <option value="oron">Oron</option>
+            <option value="awori">Awori</option>
+            <option value="okun">Okun (Yoruba subgroup)</option>
+            <option value="eket">Eket</option>
+            <option value="ijesha">Ijesha</option>
+            <option value="ekiti">Ekiti</option>
+            <option value="egba">Egba</option>
+            <option value="ijebu">Ijebu</option>
+            <option value="owu">Owu</option>
+            <option value="yakurr">Yakurr</option>
+            <option value="berom">Berom</option>
+            <option value="higgi">Higgi</option>
+            <option value="mwaghavul">Mwaghavul</option>
+            <option value="gwandara">Gwandara</option>
+            <option value="marghi">Marghi</option>
+            <option value="chamba">Chamba</option>
+            <option value="fali">Fali</option>
+            <option value="kilba">Kilba</option>
+            <option value="tangale">Tangale</option>
+            <option value="waja">Waja</option>
+            <option value="kagoro">Kagoro</option>
+            <option value="atyap">Atyap (Kataf)</option>
+            <option value="bajju">Bajju</option>
+            <option value="ham">Ham (Jaba)</option>
+            <option value="izon">Izon (Ijaw subgroup)</option>
+            <option value="ogbia">Ogbia</option>
+            <option value="nembe">Nembe</option>
+            <option value="opobo">Opobo</option>
+            <option value="ogba">Ogba</option>
+            <option value="etche">Etche</option>
+            <option value="bekwarra">Bekwarra</option>
+            <option value="goemai">Goemai</option>
+            <option value="izzi">Izzi</option>
+            <option value="ikwo">Ikwo</option>
+            <option value="afikpo">Afikpo</option>
+          </select>
+        </div>
+        <div class="form-row is-hidden" data-other-tribe-row hidden>
+          <label for="profile-tribe-other">Your tribe</label>
+          <input
+            id="profile-tribe-other"
+            name="tribeOther"
+            type="text"
+            placeholder="Type your tribe"
+          />
         </div>
         <div class="form-row">
           <label for="profile-photo">Profile photos (up to 5)</label>
