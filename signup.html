@@ -6,6 +6,20 @@
     <title>Sign up | Nigeria Dating</title>
     <meta name="description" content="Create your Nigeria Dating profile." />
     <link rel="stylesheet" href="styles.css" />
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"
+    ></script>
+    <script defer src="firebase-config.js"></script>
+    <script defer src="firebase-init.js"></script>
     <script defer src="app.js"></script>
   </head>
   <body data-page="signup">
@@ -22,9 +36,7 @@
     </header>
     <main>
       <h1 class="page-title">Create your account</h1>
-      <p class="page-intro">
-        Static demo mode is enabled for GitHub Pages.
-      </p>
+      <p class="page-intro">Create your account to start matching.</p>
       <div class="card">
         <form class="form" data-signup-form>
           <div class="form-row">
@@ -56,9 +68,7 @@
               required
             />
           </div>
-          <p class="form-note" data-signup-note>
-            Signup is disabled in this static build.
-          </p>
+          <p class="form-note" data-signup-note></p>
           <button class="button primary" type="submit">
             Create account
           </button>

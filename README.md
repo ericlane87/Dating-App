@@ -1,23 +1,26 @@
-﻿Dating App (Nigeria) - MVP
+Dating App (Nigeria) - Static Site
 
 Overview
-- Location-aware dating site for Nigeria with religion and ethnicity preferences.
+- Static HTML/CSS/JavaScript dating site prototype.
 - Core sections: Profile, People, Liked You, Chats.
+- Authentication: Firebase Authentication (email/password).
+- Account metadata storage: Cloud Firestore (`users` collection).
 
-Stack (recommended, low cost)
-- Frontend: Next.js (App Router) + TypeScript
-- Backend: Next.js API routes + Prisma
-- Database: Postgres
-- Media storage: Cloudflare R2 (cheap S3-compatible)
+Run locally
+1) From the project folder, run: `python3 -m http.server 4000`
+2) Open: `http://localhost:4000`
 
-Getting Started (local)
-1) Copy .env.example to .env and fill values.
-2) Install dependencies: npm install
-3) Run dev server: npm run dev
-4) Initialize database: npx prisma migrate dev
+Optional npm shortcut
+- `npm start` runs the same local static server.
 
-Docs
-- docs/PRODUCT.md
-- docs/ARCHITECTURE.md
-- docs/ROADMAP.md
-- docs/API.md
+Firebase setup
+1) Create a Firebase project and add a Web app.
+2) Enable Email/Password in Authentication.
+3) Create a Firestore database.
+4) Update `firebase-config.js` with your Firebase web config values.
+5) In Firestore rules, allow authenticated users to read/write their own user doc.
+
+Local test mode (without Firebase)
+- If `firebase-config.js` is not configured, signup/login still works in local mode.
+- Accounts are saved in browser `localStorage` under key `localTestUsers`.
+- This is device/browser specific and for testing only.

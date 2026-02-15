@@ -6,17 +6,31 @@
     <title>Sign in | Nigeria Dating</title>
     <meta name="description" content="Sign in to Nigeria Dating." />
     <link rel="stylesheet" href="styles.css" />
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"
+    ></script>
+    <script defer src="firebase-config.js"></script>
+    <script defer src="firebase-init.js"></script>
     <script defer src="app.js"></script>
   </head>
   <body data-page="signin">
     <main class="centered-main">
       <form class="card form" action="#" method="post" data-signin-form>
         <div class="form-row">
-          <label for="signin-username">Username</label>
+          <label for="signin-username">Email</label>
           <input
             id="signin-username"
-            name="username"
-            type="text"
+            name="email"
+            type="email"
             autocomplete="username"
             required
           />
@@ -35,6 +49,7 @@
           <a class="text-link" href="forgot-password.html">Forgot password</a>
           <a class="text-link" href="signup.html">Create account</a>
         </div>
+        <p class="form-note" data-signin-note></p>
         <button class="button primary" type="submit">Login</button>
       </form>
     </main>
