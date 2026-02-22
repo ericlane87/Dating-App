@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profile | Nigeria Dating</title>
+    <meta name="description" content="View a full dating profile." />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body data-page="view-profile">
+    <header class="site-header">
+      <a class="brand" href="dashboard.html">
+        <span class="brand-mark" aria-hidden="true">ND</span>
+        <strong>Nigeria Dating</strong>
+      </a>
+      <nav class="nav">
+        <a data-nav="dashboard" href="dashboard.html">Dashboard</a>
+        <a data-nav="people" href="people.html">People</a>
+      </nav>
+    </header>
+    <main>
+      <a class="text-link" href="dashboard.html">Back to dashboard</a>
+      <section class="card profile-detail" data-profile-detail>
+        <div class="profile-detail-layout">
+          <section class="profile-media-panel">
+            <div class="profile-detail-photo" data-detail-photo></div>
+            <div class="profile-detail-gallery-block">
+              <strong>Photos</strong>
+              <div class="profile-detail-gallery" data-detail-gallery></div>
+            </div>
+          </section>
+          <aside class="profile-summary-panel">
+            <div class="profile-summary-card">
+              <h1 class="page-title profile-title" data-detail-name>Profile</h1>
+              <p class="page-intro profile-location" data-detail-location></p>
+              <div class="profile-highlight-grid">
+                <p><strong>Gender</strong><span data-detail-gender></span></p>
+                <p><strong>Religion</strong><span data-detail-religion></span></p>
+                <p><strong>Tribe</strong><span data-detail-tribe></span></p>
+                <p><strong>Looking for</strong><span data-detail-looking-for></span></p>
+              </div>
+              <div class="profile-detail-actions">
+                <button
+                  class="button like-button"
+                  type="button"
+                  data-like-profile
+                  aria-label="Like profile"
+                  title="Like profile"
+                >
+                  &#10084;
+                </button>
+                <button class="button primary" type="button" data-send-message>
+                  Send message
+                </button>
+              </div>
+              <p class="form-note" data-like-note></p>
+            </div>
+          </aside>
+        </div>
+        <div class="profile-detail-sections">
+          <div class="profile-info-card">
+            <h2>About</h2>
+            <div class="profile-detail-bio">
+              <p data-detail-bio></p>
+            </div>
+          </div>
+          <div class="profile-info-card">
+            <h2>Basics</h2>
+            <div class="profile-detail-grid">
+              <p><strong>Profession:</strong> <span data-detail-profession></span></p>
+              <p><strong>Education:</strong> <span data-detail-education></span></p>
+              <p><strong>Height:</strong> <span data-detail-height></span></p>
+              <p><strong>Weight:</strong> <span data-detail-weight></span></p>
+            </div>
+          </div>
+          <div class="profile-info-card">
+            <h2>Lifestyle</h2>
+            <div class="profile-detail-grid">
+              <p><strong>Smoking:</strong> <span data-detail-smoking></span></p>
+              <p><strong>Drinking:</strong> <span data-detail-drinking></span></p>
+              <p><strong>Kids:</strong> <span data-detail-kids></span></p>
+              <p><strong>Languages:</strong> <span data-detail-languages></span></p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="card" data-profile-not-found hidden>
+        <h2 class="page-title">Profile not found</h2>
+        <p class="page-intro">That profile could not be loaded.</p>
+      </section>
+      <div class="message-modal" data-message-modal hidden>
+        <section class="message-modal-card" role="dialog" aria-modal="true" aria-labelledby="message-modal-title">
+          <h2 id="message-modal-title">Send Message</h2>
+          <p class="form-note" data-message-modal-recipient></p>
+          <div class="form-row">
+            <label for="profile-message-text">Message</label>
+            <textarea
+              id="profile-message-text"
+              data-message-modal-text
+              rows="5"
+              maxlength="500"
+              placeholder="Write your opening message..."
+            ></textarea>
+          </div>
+          <p class="form-note" data-message-modal-note></p>
+          <div class="profile-detail-actions">
+            <button class="button primary" type="button" data-message-modal-send>
+              Send
+            </button>
+            <button class="button ghost" type="button" data-message-modal-cancel>
+              Cancel
+            </button>
+          </div>
+        </section>
+      </div>
+      <div class="photo-lightbox" data-photo-lightbox hidden>
+        <button
+          type="button"
+          class="photo-lightbox-close"
+          data-photo-lightbox-close
+          aria-label="Close photo"
+        >
+          x
+        </button>
+        <img src="" alt="Enlarged profile photo" data-photo-lightbox-image />
+      </div>
+    </main>
+  </body>
+</html>

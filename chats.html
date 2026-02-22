@@ -10,33 +10,48 @@
   </head>
   <body data-page="chats">
     <header class="site-header">
-      <a class="brand" href="index.html">
-        <span class="brand-mark" aria-hidden="true"></span>
+      <a class="brand" href="dashboard.html">
+        <span class="brand-mark" aria-hidden="true">ND</span>
         <strong>Nigeria Dating</strong>
       </a>
       <nav class="nav">
-        <a data-nav="people" href="people.html">People</a>
-        <a data-nav="signin" href="signin.html">Sign in</a>
-        <a class="button primary" href="signup.html">Start matching</a>
+        <a data-nav="chats" href="chats.html">
+          Messages <span class="nav-badge" data-messages-badge hidden>0</span>
+        </a>
+        <a data-nav="liked-you" href="liked-you.html">
+          Likes <span class="nav-badge" data-likes-badge hidden>0</span>
+        </a>
       </nav>
     </header>
     <main>
-      <h1 class="page-title">Chats</h1>
-      <p class="page-intro">Your conversations and opening moves.</p>
-      <div class="list">
-        <div class="list-item">
-          <strong>Adaeze · Abuja</strong>
-          <p class="form-note">"Tell me the last song that made you smile."</p>
-        </div>
-        <div class="list-item">
-          <strong>Chinedu · Enugu</strong>
-          <p class="form-note">"Weekend plan: brunch or beach?"</p>
-        </div>
-        <div class="list-item">
-          <strong>Fatima · Kano</strong>
-          <p class="form-note">"What values matter most to you?"</p>
-        </div>
-      </div>
+      <h1 class="page-title">Messages</h1>
+      <p class="page-intro">Chat with members who liked you or that you matched with.</p>
+      <section class="chat-app" data-chats-app>
+        <aside class="chat-sidebar">
+          <div class="chat-sidebar-head">
+            <strong>Conversations</strong>
+          </div>
+          <div class="chat-thread-list" data-chat-thread-list></div>
+          <p class="form-note" data-chat-empty hidden>
+            No conversations yet. Send a message from a profile to start.
+          </p>
+        </aside>
+        <section class="chat-panel">
+          <div class="chat-panel-head">
+            <strong data-chat-active-name>Select a conversation</strong>
+          </div>
+          <div class="chat-message-list" data-chat-message-list></div>
+          <form class="chat-compose" data-chat-compose>
+            <textarea
+              data-chat-compose-input
+              rows="3"
+              maxlength="500"
+              placeholder="Write your message..."
+            ></textarea>
+            <button class="button primary" type="submit">Send</button>
+          </form>
+        </section>
+      </section>
     </main>
   </body>
 </html>

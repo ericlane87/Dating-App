@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard | Nigeria Dating</title>
+    <meta name="description" content="Browse profile photos on your dashboard." />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body data-page="dashboard">
+    <header class="site-header">
+      <a class="brand" href="dashboard.html">
+        <span class="brand-mark" aria-hidden="true">ND</span>
+        <strong>Nigeria Dating</strong>
+      </a>
+      <nav class="nav">
+        <a data-nav="chats" href="chats.html">
+          Messages <span class="nav-badge" data-messages-badge hidden>0</span>
+        </a>
+        <button
+          type="button"
+          class="filter-toggle"
+          data-filter-toggle
+          aria-label="Open dashboard filters"
+          title="Filter dashboard"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 5h18v2l-7 7v5l-4-2v-3L3 7z" />
+          </svg>
+        </button>
+        <a data-nav="liked-you" href="liked-you.html">
+          Likes <span class="nav-badge" data-likes-badge hidden>0</span>
+        </a>
+        <div class="profile-menu">
+          <button
+            type="button"
+            class="profile-menu-toggle"
+            data-profile-menu-toggle
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="profile-menu-dropdown"
+            aria-label="Open profile menu"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 12.2a4.35 4.35 0 1 0-4.35-4.35A4.35 4.35 0 0 0 12 12.2zm0 2.05c-3.78 0-7 1.95-7 4.25V20h14v-1.5c0-2.3-3.22-4.25-7-4.25z"
+              />
+            </svg>
+          </button>
+          <div id="profile-menu-dropdown" class="profile-menu-dropdown" data-profile-menu hidden>
+            <a href="create-profile.html">Edit profile</a>
+            <button type="button" data-logout-button>Logout</button>
+          </div>
+        </div>
+      </nav>
+    </header>
+    <main>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-intro">Profiles shown here are filtered to the opposite sex.</p>
+      <section class="dashboard-wall" aria-label="Profile photo wall">
+        <div class="dashboard-grid" data-dashboard-grid></div>
+        <p class="form-note" data-dashboard-empty hidden>
+          No opposite-sex profiles available yet. Add more test profiles or update profile gender.
+        </p>
+      </section>
+      <div class="filter-modal" data-filter-modal hidden>
+        <section class="filter-modal-card" role="dialog" aria-modal="true" aria-labelledby="filter-title">
+          <h2 id="filter-title">Dashboard Filters</h2>
+          <div class="form-row">
+            <label for="filter-religion">Religion</label>
+            <select id="filter-religion" data-filter-religion>
+              <option value="">Any</option>
+              <option value="christian">Christian</option>
+              <option value="muslim">Muslim</option>
+              <option value="traditional">Traditional</option>
+              <option value="other">Other</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="filter-looking-for">Looking for</label>
+            <select id="filter-looking-for" data-filter-looking-for>
+              <option value="">Any</option>
+              <option value="short-term">Short-term</option>
+              <option value="long-term">Long-term</option>
+              <option value="fun">Fun</option>
+              <option value="intimacy">Intimacy</option>
+              <option value="dating">Dating</option>
+              <option value="marriage">Marriage</option>
+              <option value="life-partner">Life partner</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="filter-location">Location contains</label>
+            <input id="filter-location" type="text" data-filter-location placeholder="e.g. Lagos" />
+          </div>
+          <div class="profile-detail-actions">
+            <button class="button primary" type="button" data-filter-apply>Apply</button>
+            <button class="button ghost" type="button" data-filter-reset>Reset</button>
+            <button class="button ghost" type="button" data-filter-close>Close</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

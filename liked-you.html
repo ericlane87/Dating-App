@@ -10,33 +10,26 @@
   </head>
   <body data-page="liked-you">
     <header class="site-header">
-      <a class="brand" href="index.html">
-        <span class="brand-mark" aria-hidden="true"></span>
+      <a class="brand" href="dashboard.html">
+        <span class="brand-mark" aria-hidden="true">ND</span>
         <strong>Nigeria Dating</strong>
       </a>
       <nav class="nav">
-        <a data-nav="people" href="people.html">People</a>
-        <a data-nav="signin" href="signin.html">Sign in</a>
-        <a class="button primary" href="signup.html">Start matching</a>
+        <a data-nav="dashboard" href="dashboard.html">Dashboard</a>
+        <a data-nav="liked-you" href="liked-you.html">
+          Likes <span class="nav-badge" data-likes-badge hidden>0</span>
+        </a>
       </nav>
     </header>
     <main>
-      <h1 class="page-title">Liked you</h1>
-      <p class="page-intro">List of people who liked your profile.</p>
-      <div class="grid">
-        <div class="card">
-          <h3>New likes</h3>
-          <p>5 new people liked you in the last 24 hours.</p>
-        </div>
-        <div class="card">
-          <h3>Most compatible</h3>
-          <p>Top matches based on values and location.</p>
-        </div>
-        <div class="card">
-          <h3>Mutual interest</h3>
-          <p>People you liked who liked you back.</p>
-        </div>
-      </div>
+      <h1 class="page-title">Likes</h1>
+      <p class="page-intro">People who liked your profile.</p>
+      <section class="dashboard-wall" aria-label="Profiles that liked you">
+        <div class="dashboard-grid" data-liked-grid></div>
+        <p class="form-note" data-liked-empty hidden>
+          No likes yet. When someone likes you, they will appear here.
+        </p>
+      </section>
     </main>
   </body>
 </html>
