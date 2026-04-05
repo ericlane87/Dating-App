@@ -965,6 +965,56 @@ select option {
   gap: 10px;
 }
 
+.is-member-highlight {
+  border-color: rgba(255, 215, 0, 0.35);
+  box-shadow: 0 18px 40px rgba(255, 215, 0, 0.08);
+}
+
+.is-member-silver {
+  border-color: rgba(203, 213, 225, 0.4);
+  box-shadow: 0 16px 36px rgba(203, 213, 225, 0.08);
+}
+
+.is-member-gold {
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 18px 40px rgba(245, 158, 11, 0.12);
+}
+
+.is-member-platinum {
+  border-color: rgba(129, 140, 248, 0.45);
+  box-shadow: 0 18px 44px rgba(129, 140, 248, 0.14);
+}
+
+.membership-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.membership-badge-silver {
+  background: rgba(203, 213, 225, 0.16);
+  border: 1px solid rgba(203, 213, 225, 0.35);
+  color: #e2e8f0;
+}
+
+.membership-badge-gold {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.membership-badge-platinum {
+  background: rgba(129, 140, 248, 0.16);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  color: #c7d2fe;
+}
+
 .profile-tile-button {
   display: grid;
   gap: 10px;
@@ -1080,6 +1130,93 @@ select option {
 .profile-menu-dropdown a:hover,
 .profile-menu-dropdown button:hover {
   background: rgba(255, 45, 45, 0.14);
+}
+
+.membership-hero {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.membership-current {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  background: rgba(15, 15, 15, 0.82);
+}
+
+.membership-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.membership-card {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 45, 45, 0.08), rgba(255, 45, 45, 0)),
+    var(--panel);
+}
+
+.membership-card h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+}
+
+.membership-card h2 span {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.membership-tier {
+  margin: 0;
+  color: var(--muted);
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.membership-price-note {
+  margin: -10px 0 0;
+  color: var(--muted);
+}
+
+.membership-feature-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+  color: var(--text);
+}
+
+.membership-card-silver {
+  border-color: rgba(203, 213, 225, 0.32);
+}
+
+.membership-card-gold {
+  border-color: rgba(245, 158, 11, 0.34);
+  transform: translateY(-4px);
+}
+
+.membership-card-platinum {
+  border-color: rgba(129, 140, 248, 0.36);
+}
+
+.membership-card.is-current-plan {
+  box-shadow: 0 20px 44px rgba(255, 45, 45, 0.18);
+}
+
+.membership-ad {
+  margin-top: 28px;
+  display: grid;
+  gap: 14px;
 }
 
 .profile-detail {
@@ -1436,6 +1573,19 @@ select option {
   background: rgba(255, 45, 45, 0.12);
 }
 
+.thread-priority-label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(129, 140, 248, 0.16);
+  border: 1px solid rgba(129, 140, 248, 0.34);
+  color: #c7d2fe;
+  font-size: 0.72rem;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
 .chat-panel {
   border: 1px solid var(--stroke);
   border-radius: 16px;
@@ -1472,6 +1622,19 @@ select option {
   border: 1px solid var(--stroke);
   background: #111111;
   color: var(--text);
+}
+
+.chat-bubble.is-blurred {
+  color: rgba(255, 255, 255, 0.22);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  filter: blur(3px);
+}
+
+.membership-read-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 
 .chat-compose {

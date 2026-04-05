@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Membership | Nigeria Dating</title>
+    <meta
+      name="description"
+      content="Compare Free, Silver, Gold, and Platinum membership plans."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body data-page="membership">
+    <header class="site-header">
+      <a class="brand" href="dashboard.html">
+        <span class="brand-mark" aria-hidden="true">ND</span>
+        <strong>Nigeria Dating</strong>
+      </a>
+      <nav class="nav">
+        <a data-nav="dashboard" href="dashboard.html">Dashboard</a>
+        <a data-nav="membership" href="membership.html">Membership</a>
+      </nav>
+    </header>
+    <main data-membership-page>
+      <section class="membership-hero">
+        <p class="badge">Membership</p>
+        <h1 class="page-title">Choose the plan that fits how you date</h1>
+        <p class="page-intro">
+          Free keeps unlimited sending. Silver removes ads and highlights your
+          profile. Gold unlocks unlimited reading. Platinum adds priority inbox placement.
+        </p>
+        <div class="membership-current">
+          <strong>Current plan: <span data-current-plan>Free</span></strong>
+          <p class="form-note" data-current-plan-note></p>
+        </div>
+      </section>
+
+      <section class="membership-grid" aria-label="Membership plans">
+        <article class="card membership-card" data-plan-card="free">
+          <p class="membership-tier">Free</p>
+          <h2>$0</h2>
+          <p class="membership-price-note">Always available</p>
+          <ul class="membership-feature-list">
+            <li>Send unlimited messages</li>
+            <li>Read 5 incoming messages each month</li>
+            <li>Extra incoming messages are blurred</li>
+            <li>Standard inbox placement</li>
+            <li>Ads visible</li>
+          </ul>
+          <button class="button ghost" type="button" data-select-plan="free">
+            Choose plan
+          </button>
+        </article>
+
+        <article class="card membership-card membership-card-silver" data-plan-card="silver">
+          <p class="membership-tier">Silver</p>
+          <h2>$9<span>/mo</span></h2>
+          <p class="membership-price-note">Starter paid tier</p>
+          <ul class="membership-feature-list">
+            <li>Everything in Free</li>
+            <li>Your profile gets highlighted</li>
+            <li>No ads anywhere on the site</li>
+            <li>Still limited to 5 readable incoming messages monthly</li>
+            <li>Extra incoming messages stay blurred</li>
+          </ul>
+          <button class="button primary" type="button" data-select-plan="silver">
+            Choose plan
+          </button>
+        </article>
+
+        <article class="card membership-card membership-card-gold" data-plan-card="gold">
+          <p class="membership-tier">Gold</p>
+          <h2>$19<span>/mo</span></h2>
+          <p class="membership-price-note">Most flexible</p>
+          <ul class="membership-feature-list">
+            <li>Everything in Silver</li>
+            <li>Read unlimited incoming messages</li>
+            <li>No blurred messages</li>
+            <li>Highlighted profile stays active</li>
+            <li>No ads</li>
+          </ul>
+          <button class="button primary" type="button" data-select-plan="gold">
+            Choose plan
+          </button>
+        </article>
+
+        <article class="card membership-card membership-card-platinum" data-plan-card="platinum">
+          <p class="membership-tier">Platinum</p>
+          <h2>$39<span>/mo</span></h2>
+          <p class="membership-price-note">Top visibility</p>
+          <ul class="membership-feature-list">
+            <li>Everything in Gold</li>
+            <li>Priority messaging in inboxes</li>
+            <li>Your threads sort above non-Platinum senders</li>
+            <li>Unlimited reading with no blur</li>
+            <li>No ads and highlighted profile</li>
+          </ul>
+          <button class="button primary" type="button" data-select-plan="platinum">
+            Choose plan
+          </button>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

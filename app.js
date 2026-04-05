@@ -39,6 +39,7 @@ const buildPersistentTopActionsMarkup = () => {
         `;
   const profileMenuLinks = currentUserEmail
     ? `
+        <a href="membership.html">Membership</a>
         <a href="create-profile.html">Edit profile</a>
         <button type="button" data-logout-button>Logout</button>
       `
@@ -183,6 +184,9 @@ const LOCAL_CHAT_THREADS_KEY = "localChatThreads";
 const LOCAL_CHAT_MESSAGES_KEY = "localChatMessages";
 const LOCAL_MESSAGE_SEEN_KEY = "localMessageSeenByUser";
 const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
+const LOCAL_MEMBERSHIPS_KEY = "localMembershipPlans";
+const MEMBERSHIP_FREE_READ_LIMIT = 5;
+const PAID_MEMBERSHIP_PLANS = new Set(["silver", "gold", "platinum"]);
 const HARDCODED_TEST_ACCOUNTS = [
   {
     firstName: "David",
@@ -401,6 +405,97 @@ const writeDashboardFilters = (filters) => {
   localStorage.setItem(LOCAL_DASH_FILTERS_KEY, JSON.stringify(filters));
 };
 
+const readMembershipPlans = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_MEMBERSHIPS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+const writeMembershipPlans = (plans) => {
+  localStorage.setItem(LOCAL_MEMBERSHIPS_KEY, JSON.stringify(plans));
+};
+
+const normalizeMembershipPlan = (plan) => {
+  const normalized = String(plan || "").trim().toLowerCase();
+  if (["free", "silver", "gold", "platinum"].includes(normalized)) {
+    return normalized;
+  }
+  return "free";
+};
+
+const getMembershipPlan = (email) => {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    return "free";
+  }
+  const plans = readMembershipPlans();
+  return normalizeMembershipPlan(plans[normalizedEmail]);
+};
+
+const setMembershipPlan = (email, plan) => {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    return;
+  }
+  const plans = readMembershipPlans();
+  plans[normalizedEmail] = normalizeMembershipPlan(plan);
+  writeMembershipPlans(plans);
+};
+
+const hasPaidMembership = (email) =>
+  PAID_MEMBERSHIP_PLANS.has(getMembershipPlan(email));
+
+const getMembershipLabel = (plan) => {
+  const normalized = normalizeMembershipPlan(plan);
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
+const isUnlimitedReadPlan = (email) => {
+  const plan = getMembershipPlan(email);
+  return plan === "gold" || plan === "platinum";
+};
+
+const isPriorityPlan = (email) => getMembershipPlan(email) === "platinum";
+
+const getMonthKey = (value) => {
+  const date = new Date(value || Date.now());
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+};
+
+const canReadInboundMessage = (viewerEmail, message, allMessages) => {
+  const normalizedEmail = String(viewerEmail || "").trim().toLowerCase();
+  if (!normalizedEmail || !message || message.to !== normalizedEmail) {
+    return true;
+  }
+  if (isUnlimitedReadPlan(normalizedEmail)) {
+    return true;
+  }
+  const targetMonth = getMonthKey(message.at);
+  if (!targetMonth) {
+    return true;
+  }
+  const inboundThisMonth = allMessages
+    .filter(
+      (entry) =>
+        entry &&
+        entry.to === normalizedEmail &&
+        getMonthKey(entry.at) === targetMonth
+    )
+    .sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+  const visibleIds = new Set(
+    inboundThisMonth.slice(0, MEMBERSHIP_FREE_READ_LIMIT).map((entry) => entry.id)
+  );
+  return visibleIds.has(message.id);
+};
+
 const syncPersistentTopActionCounts = () => {
   const currentUserEmail = getCurrentUserEmail();
   if (!currentUserEmail) {
@@ -421,6 +516,53 @@ const syncPersistentTopActionCounts = () => {
 
   setBadgeCount("[data-likes-badge]", receivedLikes.length);
   setBadgeCount("[data-messages-badge]", unreadMessageCount);
+};
+
+const createMembershipBadgeMarkup = (email) => {
+  const plan = getMembershipPlan(email);
+  if (!hasPaidMembership(email)) {
+    return "";
+  }
+  return `<span class="membership-badge membership-badge-${plan}">${getMembershipLabel(plan)}</span>`;
+};
+
+const applyMembershipHighlight = (element, email) => {
+  if (!element) {
+    return;
+  }
+  const plan = getMembershipPlan(email);
+  element.classList.toggle("is-member-highlight", hasPaidMembership(email));
+  element.classList.toggle("is-member-silver", plan === "silver");
+  element.classList.toggle("is-member-gold", plan === "gold");
+  element.classList.toggle("is-member-platinum", plan === "platinum");
+};
+
+const renderMembershipAd = () => {
+  if (["signin", "signup", "create-profile", "membership"].includes(pageName)) {
+    return;
+  }
+  const currentUserEmail = getCurrentUserEmail();
+  if (currentUserEmail && hasPaidMembership(currentUserEmail)) {
+    document.querySelectorAll("[data-membership-ad]").forEach((node) => node.remove());
+    return;
+  }
+  const main = document.querySelector("main");
+  if (!main || document.querySelector("[data-membership-ad]")) {
+    return;
+  }
+  const adCard = document.createElement("section");
+  adCard.className = "card membership-ad";
+  adCard.setAttribute("data-membership-ad", "");
+  adCard.innerHTML = `
+    <p class="badge">Sponsored</p>
+    <h2 class="page-title">Upgrade for cleaner browsing</h2>
+    <p class="page-intro">
+      Silver removes ads and highlights your profile. Gold unlocks unlimited message reading.
+      Platinum adds priority inbox placement.
+    </p>
+    <a class="button primary" href="membership.html">See membership plans</a>
+  `;
+  main.appendChild(adCard);
 };
 
 const fileToDataUrl = (file) =>
@@ -532,6 +674,7 @@ const getOppositeGender = (gender) => {
 
 seedHardcodedLocalTestUser();
 syncPersistentTopActionCounts();
+renderMembershipAd();
 
 let createProfileExistingPhotos = [];
 let createProfileExistingPrimaryIndex = 0;
@@ -764,6 +907,52 @@ if (signinForm) {
       }
     }
   });
+}
+
+const membershipPage = document.querySelector("[data-membership-page]");
+if (membershipPage) {
+  const currentUserEmail = getCurrentUserEmail();
+  const currentPlanLabel = document.querySelector("[data-current-plan]");
+  const currentPlanNote = document.querySelector("[data-current-plan-note]");
+  const planButtons = document.querySelectorAll("[data-select-plan]");
+
+  const renderMembershipPage = () => {
+    const plan = getMembershipPlan(currentUserEmail);
+    if (currentPlanLabel) {
+      currentPlanLabel.textContent = getMembershipLabel(plan);
+    }
+    if (currentPlanNote) {
+      currentPlanNote.textContent = currentUserEmail
+        ? `${getMembershipLabel(plan)} is active for ${currentUserEmail}.`
+        : "Sign in to attach a plan to your profile.";
+    }
+
+    planButtons.forEach((button) => {
+      const buttonPlan = normalizeMembershipPlan(button.getAttribute("data-select-plan"));
+      const card = button.closest("[data-plan-card]");
+      const isActive = buttonPlan === plan;
+      if (card) {
+        card.classList.toggle("is-current-plan", isActive);
+      }
+      button.disabled = !currentUserEmail || isActive;
+      button.textContent = isActive ? "Current plan" : "Choose plan";
+    });
+  };
+
+  planButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!currentUserEmail) {
+        window.location.href = "signin.html";
+        return;
+      }
+      setMembershipPlan(currentUserEmail, button.getAttribute("data-select-plan"));
+      syncPersistentTopActionCounts();
+      renderMembershipAd();
+      renderMembershipPage();
+    });
+  });
+
+  renderMembershipPage();
 }
 
 const createProfileForm = document.querySelector("[data-create-profile-form]");
@@ -1205,6 +1394,7 @@ if (dashboardGrid) {
     cards.forEach((entry) => {
       const tile = document.createElement("article");
       tile.className = "profile-tile";
+      applyMembershipHighlight(tile, entry.key);
       const button = document.createElement("button");
       button.type = "button";
       button.className = "profile-tile-button";
@@ -1218,7 +1408,7 @@ if (dashboardGrid) {
           }
         </div>
         <div class="profile-meta">
-          <strong>${entry.name}</strong>
+          <strong>${entry.name} ${createMembershipBadgeMarkup(entry.key)}</strong>
           <span>${entry.location || "Nigeria"}</span>
         </div>
       `;
@@ -1346,6 +1536,7 @@ if (likedGrid) {
 
     const tile = document.createElement("article");
     tile.className = "profile-tile";
+    applyMembershipHighlight(tile, entry.from);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "profile-tile-button";
@@ -1359,7 +1550,7 @@ if (likedGrid) {
         }
       </div>
       <div class="profile-meta">
-        <strong>${name}</strong>
+        <strong>${name} ${createMembershipBadgeMarkup(entry.from)}</strong>
         <span>${record.location || "Nigeria"}</span>
       </div>
     `;
@@ -1409,9 +1600,23 @@ if (chatsApp) {
   } else {
     let threads = readLocalChatThreads();
     let messages = readLocalChatMessages();
+    const currentPlan = getMembershipPlan(currentUserEmail);
     const pendingRecipient = (localStorage.getItem("pendingChatRecipientKey") || "")
       .trim()
       .toLowerCase();
+    const panelHead = document.querySelector(".chat-panel-head");
+    if (panelHead && !panelHead.querySelector("[data-membership-read-note]")) {
+      const note = document.createElement("p");
+      note.className = "membership-read-note";
+      note.setAttribute("data-membership-read-note", "");
+      note.textContent =
+        currentPlan === "free" || currentPlan === "silver"
+          ? "Your plan can read 5 incoming messages each month. Upgrade to Gold for unlimited reading."
+          : currentPlan === "platinum"
+            ? "Platinum includes unlimited reading and priority inbox placement."
+            : "Gold includes unlimited message reading with no blurred messages.";
+      panelHead.appendChild(note);
+    }
 
     if (pendingRecipient && pendingRecipient !== currentUserEmail) {
       const exists = threads.find(
@@ -1452,6 +1657,11 @@ if (chatsApp) {
       threads
         .filter((entry) => entry && (entry.a === currentUserEmail || entry.b === currentUserEmail))
         .sort((a, b) => {
+          const aPriority = isPriorityPlan(getThreadOther(a)) ? 1 : 0;
+          const bPriority = isPriorityPlan(getThreadOther(b)) ? 1 : 0;
+          if (aPriority !== bPriority) {
+            return bPriority - aPriority;
+          }
           const aMsgs = getThreadMessages(a.id);
           const bMsgs = getThreadMessages(b.id);
           const aLast = aMsgs.length ? aMsgs[aMsgs.length - 1].at : a.createdAt || "";
@@ -1493,8 +1703,14 @@ if (chatsApp) {
       threadMessages.forEach((entry) => {
         const bubble = document.createElement("div");
         const own = entry.from === currentUserEmail;
+        const readable = own ? true : canReadInboundMessage(currentUserEmail, entry, messages);
         bubble.className = `chat-bubble ${own ? "own" : "other"}`;
-        bubble.textContent = entry.text || "";
+        if (!readable) {
+          bubble.classList.add("is-blurred");
+          bubble.textContent = "Upgrade to Gold to read this message.";
+        } else {
+          bubble.textContent = entry.text || "";
+        }
         messageList.appendChild(bubble);
       });
       messageList.scrollTop = messageList.scrollHeight;
@@ -1517,11 +1733,17 @@ if (chatsApp) {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "chat-thread-item";
+        applyMembershipHighlight(button, otherEmail);
         if (thread.id === activeThreadId) {
           button.classList.add("active");
         }
+        const badgeMarkup = createMembershipBadgeMarkup(otherEmail);
+        const priorityLabel = isPriorityPlan(otherEmail)
+          ? '<span class="thread-priority-label">Priority</span>'
+          : "";
         button.innerHTML = `
-          <strong>${getDisplayName(otherEmail)}</strong>
+          <strong>${getDisplayName(otherEmail)} ${badgeMarkup}</strong>
+          ${priorityLabel}
           <span>${last || "Start the conversation"}</span>
         `;
         button.addEventListener("click", () => {
@@ -1649,6 +1871,7 @@ if (profileDetailRoot) {
     detailBio &&
     detailGallery
   ) {
+    applyMembershipHighlight(profileDetailRoot, key);
     const photos = Array.isArray(record.photos) ? record.photos : [];
     const primaryIndex = Number.isInteger(record.primaryPhotoIndex)
       ? record.primaryPhotoIndex
@@ -1666,7 +1889,7 @@ if (profileDetailRoot) {
     let selectedMainPhoto = heroPhoto;
     renderMainPhoto(selectedMainPhoto);
 
-    detailName.textContent = display(record.profileName);
+    detailName.innerHTML = `${display(record.profileName)} ${createMembershipBadgeMarkup(key)}`;
     detailLocation.textContent = display(record.location);
     detailGender.textContent = display(record.gender);
     detailReligion.textContent = display(record.religion);
