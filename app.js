@@ -186,7 +186,7 @@ const LOCAL_MESSAGE_SEEN_KEY = "localMessageSeenByUser";
 const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
 const LOCAL_MEMBERSHIPS_KEY = "localMembershipPlans";
 const MEMBERSHIP_FREE_READ_LIMIT = 5;
-const PAID_MEMBERSHIP_PLANS = new Set(["silver", "gold", "platinum"]);
+const PAID_MEMBERSHIP_PLANS = new Set(["silver", "gold"]);
 const HARDCODED_TEST_ACCOUNTS = [
   {
     firstName: "David",
@@ -422,7 +422,10 @@ const writeMembershipPlans = (plans) => {
 
 const normalizeMembershipPlan = (plan) => {
   const normalized = String(plan || "").trim().toLowerCase();
-  if (["free", "silver", "gold", "platinum"].includes(normalized)) {
+  if (normalized === "platinum") {
+    return "gold";
+  }
+  if (["free", "silver", "gold"].includes(normalized)) {
     return normalized;
   }
   return "free";
@@ -457,10 +460,10 @@ const getMembershipLabel = (plan) => {
 
 const isUnlimitedReadPlan = (email) => {
   const plan = getMembershipPlan(email);
-  return plan === "gold" || plan === "platinum";
+  return plan === "gold";
 };
 
-const isPriorityPlan = (email) => getMembershipPlan(email) === "platinum";
+const isPriorityPlan = (email) => getMembershipPlan(email) === "gold";
 
 const getMonthKey = (value) => {
   const date = new Date(value || Date.now());
@@ -534,7 +537,6 @@ const applyMembershipHighlight = (element, email) => {
   element.classList.toggle("is-member-highlight", hasPaidMembership(email));
   element.classList.toggle("is-member-silver", plan === "silver");
   element.classList.toggle("is-member-gold", plan === "gold");
-  element.classList.toggle("is-member-platinum", plan === "platinum");
 };
 
 const renderMembershipAd = () => {
@@ -557,8 +559,8 @@ const renderMembershipAd = () => {
     <p class="badge">Sponsored</p>
     <h2 class="page-title">Upgrade for cleaner browsing</h2>
     <p class="page-intro">
-      Silver removes ads and highlights your profile. Gold unlocks unlimited message reading.
-      Platinum adds priority inbox placement.
+      Silver gives you no ads and a highlighted profile. Gold gives you unlimited reading
+      and priority messaging.
     </p>
     <a class="button primary" href="membership.html">See membership plans</a>
   `;
@@ -1611,10 +1613,8 @@ if (chatsApp) {
       note.setAttribute("data-membership-read-note", "");
       note.textContent =
         currentPlan === "free" || currentPlan === "silver"
-          ? "Your plan can read 5 incoming messages each month. Upgrade to Gold for unlimited reading."
-          : currentPlan === "platinum"
-            ? "Platinum includes unlimited reading and priority inbox placement."
-            : "Gold includes unlimited message reading with no blurred messages.";
+          ? "Your plan includes 5 full incoming message reads each month."
+          : "Gold includes unlimited reading and priority inbox placement.";
       panelHead.appendChild(note);
     }
 
