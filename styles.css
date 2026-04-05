@@ -125,6 +125,26 @@ main {
   gap: 18px;
 }
 
+.persistent-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.floating-top-actions {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: rgba(8, 8, 8, 0.9);
+  backdrop-filter: blur(8px);
+}
+
 .nav a {
   text-decoration: none;
   font-weight: 600;
@@ -161,6 +181,10 @@ main {
   display: grid;
   place-items: center;
   cursor: pointer;
+}
+
+a.filter-toggle {
+  text-decoration: none;
 }
 
 .filter-toggle:hover {
@@ -889,8 +913,17 @@ select option {
     gap: 16px;
   }
 
-  .nav {
+  .nav,
+  .persistent-top-actions {
     flex-wrap: wrap;
+  }
+
+  .floating-top-actions {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    border-radius: 20px;
+    justify-content: center;
   }
 
   .hero {

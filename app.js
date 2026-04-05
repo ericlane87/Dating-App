@@ -1,6 +1,124 @@
 "use strict";
 
 const pageName = document.body?.dataset?.page;
+const getCurrentUserEmail = () =>
+  (localStorage.getItem("currentUserEmail") || "").trim().toLowerCase();
+const getCurrentUserName = () => (localStorage.getItem("currentUserName") || "").trim();
+
+const buildPersistentTopActionsMarkup = () => {
+  const currentUserEmail = getCurrentUserEmail();
+  const currentUserName = getCurrentUserName();
+  const chatsHref = currentUserEmail ? "chats.html" : "signin.html";
+  const likesHref = currentUserEmail ? "liked-you.html" : "signin.html";
+  const filterControl =
+    pageName === "dashboard"
+      ? `
+          <button
+            type="button"
+            class="filter-toggle"
+            data-filter-toggle
+            aria-label="Open dashboard filters"
+            title="Filter dashboard"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 5h18v2l-7 7v5l-4-2v-3L3 7z" />
+            </svg>
+          </button>
+        `
+      : `
+          <a
+            class="filter-toggle"
+            href="${currentUserEmail ? "dashboard.html?openFilters=1" : "signin.html"}"
+            aria-label="Open dashboard filters"
+            title="Filter dashboard"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 5h18v2l-7 7v5l-4-2v-3L3 7z" />
+            </svg>
+          </a>
+        `;
+  const profileMenuLinks = currentUserEmail
+    ? `
+        <a href="create-profile.html">Edit profile</a>
+        <button type="button" data-logout-button>Logout</button>
+      `
+    : `
+        <a href="signin.html">Sign in</a>
+        <a href="signup.html">Create account</a>
+      `;
+  const profileLabel = currentUserName || "Account";
+
+  return `
+    <div class="persistent-top-actions" data-persistent-actions>
+      <a data-nav="chats" href="${chatsHref}">
+        Messages <span class="nav-badge" data-messages-badge hidden>0</span>
+      </a>
+      ${filterControl}
+      <a data-nav="liked-you" href="${likesHref}">
+        Likes <span class="nav-badge" data-likes-badge hidden>0</span>
+      </a>
+      <div class="profile-menu">
+        <button
+          type="button"
+          class="profile-menu-toggle"
+          data-profile-menu-toggle
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="profile-menu-dropdown"
+          aria-label="Open account menu for ${profileLabel}"
+          title="${profileLabel}"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 12.2a4.35 4.35 0 1 0-4.35-4.35A4.35 4.35 0 0 0 12 12.2zm0 2.05c-3.78 0-7 1.95-7 4.25V20h14v-1.5c0-2.3-3.22-4.25-7-4.25z"
+            />
+          </svg>
+        </button>
+        <div id="profile-menu-dropdown" class="profile-menu-dropdown" data-profile-menu hidden>
+          ${profileMenuLinks}
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const ensurePersistentTopActions = () => {
+  const siteHeaders = document.querySelectorAll(".site-header");
+  siteHeaders.forEach((header) => {
+    let nav = header.querySelector(".nav");
+    if (!nav) {
+      nav = document.createElement("nav");
+      nav.className = "nav";
+      header.appendChild(nav);
+    }
+
+    nav
+      .querySelectorAll(
+        "[data-nav='chats'], [data-nav='liked-you'], [data-filter-toggle], .profile-menu"
+      )
+      .forEach((node) => node.remove());
+
+    nav.insertAdjacentHTML("beforeend", buildPersistentTopActionsMarkup());
+  });
+
+  if (!siteHeaders.length && !document.querySelector("[data-floating-top-actions]")) {
+    const floatingActions = document.createElement("div");
+    floatingActions.className = "floating-top-actions";
+    floatingActions.setAttribute("data-floating-top-actions", "");
+    floatingActions.innerHTML = buildPersistentTopActionsMarkup();
+    document.body.appendChild(floatingActions);
+  }
+};
+
+const setBadgeCount = (selector, count) => {
+  document.querySelectorAll(selector).forEach((badge) => {
+    badge.textContent = String(count);
+    badge.hidden = count === 0;
+  });
+};
+
+ensurePersistentTopActions();
+
 if (pageName) {
   const navLinks = document.querySelectorAll("[data-nav]");
   navLinks.forEach((link) => {
@@ -283,6 +401,28 @@ const writeDashboardFilters = (filters) => {
   localStorage.setItem(LOCAL_DASH_FILTERS_KEY, JSON.stringify(filters));
 };
 
+const syncPersistentTopActionCounts = () => {
+  const currentUserEmail = getCurrentUserEmail();
+  if (!currentUserEmail) {
+    setBadgeCount("[data-messages-badge]", 0);
+    setBadgeCount("[data-likes-badge]", 0);
+    return;
+  }
+
+  const localLikes = readLocalLikes();
+  const localChatMessages = readLocalChatMessages();
+  const receivedLikes = localLikes.filter((entry) => entry && entry.to === currentUserEmail);
+  const inboundCount = localChatMessages.filter(
+    (entry) => entry && entry.to === currentUserEmail
+  ).length;
+  const messageSeenMap = readMessageSeen();
+  const seenMessageCount = Number(messageSeenMap[currentUserEmail] || 0);
+  const unreadMessageCount = Math.max(0, inboundCount - seenMessageCount);
+
+  setBadgeCount("[data-likes-badge]", receivedLikes.length);
+  setBadgeCount("[data-messages-badge]", unreadMessageCount);
+};
+
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -391,6 +531,7 @@ const getOppositeGender = (gender) => {
 };
 
 seedHardcodedLocalTestUser();
+syncPersistentTopActionCounts();
 
 let createProfileExistingPhotos = [];
 let createProfileExistingPrimaryIndex = 0;
@@ -939,15 +1080,13 @@ if (dashboardGrid) {
   const seenMessageCount = Number(messageSeenMap[currentUserEmail] || 0);
   const unreadMessageCount = Math.max(0, messageCount - seenMessageCount);
   if (messagesBadge) {
-    messagesBadge.textContent = String(unreadMessageCount);
-    messagesBadge.hidden = unreadMessageCount === 0;
+    setBadgeCount("[data-messages-badge]", unreadMessageCount);
   }
   const receivedLikes = currentUserEmail
     ? localLikes.filter((entry) => entry.to === currentUserEmail)
     : [];
   if (likesBadge) {
-    likesBadge.textContent = String(receivedLikes.length);
-    likesBadge.hidden = receivedLikes.length === 0;
+    setBadgeCount("[data-likes-badge]", receivedLikes.length);
   }
   if (currentUserEmail && receivedLikes.length > 0) {
     const seenMap = readLikeSeen();
@@ -1139,6 +1278,11 @@ if (dashboardGrid) {
       closeFilterModal();
       renderDashboardCards();
     });
+
+    if (new URLSearchParams(window.location.search).get("openFilters") === "1") {
+      syncFilterInputs();
+      filterModal.hidden = false;
+    }
   }
 
   renderDashboardCards();
@@ -1158,8 +1302,7 @@ if (likedGrid) {
     : [];
 
   if (likesBadge) {
-    likesBadge.textContent = String(receivedLikes.length);
-    likesBadge.hidden = receivedLikes.length === 0;
+    setBadgeCount("[data-likes-badge]", receivedLikes.length);
   }
 
   if (currentUserEmail) {
@@ -1252,8 +1395,7 @@ if (chatsApp) {
 
   if (likesBadge && currentUserEmail) {
     const receivedLikes = likes.filter((entry) => entry.to === currentUserEmail);
-    likesBadge.textContent = String(receivedLikes.length);
-    likesBadge.hidden = receivedLikes.length === 0;
+    setBadgeCount("[data-likes-badge]", receivedLikes.length);
   }
 
   if (!currentUserEmail || !threadList || !messageList || !composeForm || !composeInput) {
@@ -1295,8 +1437,7 @@ if (chatsApp) {
     seenMap[currentUserEmail] = inboundCount;
     writeMessageSeen(seenMap);
     if (messagesBadge) {
-      messagesBadge.hidden = true;
-      messagesBadge.textContent = "0";
+      setBadgeCount("[data-messages-badge]", 0);
     }
 
     const getThreadOther = (thread) =>
