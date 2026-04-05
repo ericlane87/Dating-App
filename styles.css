@@ -563,6 +563,63 @@ main {
   gap: 16px;
 }
 
+.signin-test-accounts {
+  width: min(1080px, 94vw);
+  padding: 28px;
+  display: grid;
+  gap: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 45, 45, 0.08), rgba(255, 45, 45, 0)),
+    var(--panel);
+}
+
+.signin-test-accounts-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.signin-test-accounts-copy .page-intro {
+  margin-bottom: 0;
+}
+
+.signin-test-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.signin-test-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: rgba(12, 12, 12, 0.88);
+}
+
+.signin-test-card h2,
+.signin-test-card p {
+  margin: 0;
+}
+
+.signin-test-card .button {
+  margin-top: 8px;
+}
+
+.signin-test-role {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 45, 0.35);
+  background: rgba(255, 45, 45, 0.1);
+  color: var(--muted);
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
 .profile-form {
   width: min(760px, 94vw);
   padding: 28px;

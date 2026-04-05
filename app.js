@@ -65,8 +65,68 @@ const LOCAL_CHAT_THREADS_KEY = "localChatThreads";
 const LOCAL_CHAT_MESSAGES_KEY = "localChatMessages";
 const LOCAL_MESSAGE_SEEN_KEY = "localMessageSeenByUser";
 const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
-const SEEDED_TEST_EMAIL = "test@example.com";
-const SEEDED_TEST_PASSWORD = "Test1234";
+const HARDCODED_TEST_ACCOUNTS = [
+  {
+    firstName: "David",
+    lastName: "Cole",
+    phone: "+12025550101",
+    email: "david.cole@testmatch.com",
+    password: "David1234",
+    profileName: "David Cole",
+    location: "New York, USA",
+    gender: "male",
+    religion: "christian",
+    tribe: "yoruba",
+    languages: ["english"],
+    lookingFor: ["dating", "long-term"],
+    avatarColor: "#0f766e"
+  },
+  {
+    firstName: "Marcus",
+    lastName: "Hill",
+    phone: "+13125550102",
+    email: "marcus.hill@testmatch.com",
+    password: "Marcus1234",
+    profileName: "Marcus Hill",
+    location: "Chicago, USA",
+    gender: "male",
+    religion: "christian",
+    tribe: "igbo",
+    languages: ["english"],
+    lookingFor: ["dating"],
+    avatarColor: "#1d4ed8"
+  },
+  {
+    firstName: "Amina",
+    lastName: "Yusuf",
+    phone: "+14435550103",
+    email: "amina.yusuf@testmatch.com",
+    password: "Amina1234",
+    profileName: "Amina Yusuf",
+    location: "Abuja, Nigeria",
+    gender: "female",
+    religion: "muslim",
+    tribe: "hausa-fulani",
+    languages: ["english", "hausa"],
+    lookingFor: ["long-term", "marriage"],
+    avatarColor: "#b91c1c"
+  },
+  {
+    firstName: "Chioma",
+    lastName: "Okafor",
+    phone: "+447700900104",
+    email: "chioma.okafor@testmatch.com",
+    password: "Chioma1234",
+    profileName: "Chioma Okafor",
+    location: "London, UK",
+    gender: "female",
+    religion: "christian",
+    tribe: "igbo",
+    languages: ["english", "igbo"],
+    lookingFor: ["dating", "long-term"],
+    avatarColor: "#9333ea"
+  }
+];
 const SEEDED_SAMPLE_PROFILES = [
   {
     email: "amina@example.com",
@@ -261,42 +321,43 @@ const createLocalUser = ({ firstName, lastName, phone, email, password }) => {
 };
 
 const seedHardcodedLocalTestUser = () => {
-  const services = getFirebaseServices();
-  if (services) {
-    return;
-  }
-
   const users = readLocalUsers();
-  const exists = users.some((entry) => entry.email === SEEDED_TEST_EMAIL);
-  if (!exists) {
+  HARDCODED_TEST_ACCOUNTS.forEach((entry) => {
+    const exists = users.some((user) => user.email === entry.email);
+    if (exists) {
+      return;
+    }
     users.push(
       createLocalUser({
-        firstName: "Test",
-        lastName: "User",
-        phone: "+2340000000000",
-        email: SEEDED_TEST_EMAIL,
-        password: SEEDED_TEST_PASSWORD
+        firstName: entry.firstName,
+        lastName: entry.lastName,
+        phone: entry.phone,
+        email: entry.email,
+        password: entry.password
       })
     );
-    writeLocalUsers(users);
-  }
+  });
+  writeLocalUsers(users);
 
   const profiles = readLocalProfiles();
-  if (!profiles[SEEDED_TEST_EMAIL]) {
-    profiles[SEEDED_TEST_EMAIL] = {
-      profileName: "Test User",
-      location: "Lagos",
-      bio: "Seeded local test profile.",
-      gender: "male",
-      religion: "christian",
-      tribe: "yoruba",
-      languages: ["english", "yoruba"],
-      lookingFor: ["dating", "long-term"],
-      photos: [],
+  HARDCODED_TEST_ACCOUNTS.forEach((entry) => {
+    if (profiles[entry.email]) {
+      return;
+    }
+    profiles[entry.email] = {
+      profileName: entry.profileName,
+      location: entry.location,
+      bio: "Hard-coded test account for sign-in demos.",
+      gender: entry.gender,
+      religion: entry.religion,
+      tribe: entry.tribe,
+      languages: entry.languages,
+      lookingFor: entry.lookingFor,
+      photos: [createAvatarDataUrl(entry.profileName, entry.avatarColor)],
       primaryPhotoIndex: 0,
       completedAt: new Date().toISOString()
     };
-  }
+  });
 
   SEEDED_SAMPLE_PROFILES.forEach((entry) => {
     if (profiles[entry.email]) {
@@ -476,6 +537,20 @@ if (signupForm) {
 
 const signinForm = document.querySelector("[data-signin-form]");
 if (signinForm) {
+  const hardcodedSigninButtons = document.querySelectorAll("[data-fill-signin]");
+  hardcodedSigninButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const emailField = signinForm.querySelector("#signin-username");
+      const passwordField = signinForm.querySelector("#signin-password");
+      if (!emailField || !passwordField) {
+        return;
+      }
+      emailField.value = button.getAttribute("data-email") || "";
+      passwordField.value = button.getAttribute("data-password") || "";
+      emailField.focus();
+    });
+  });
+
   signinForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const emailField = signinForm.querySelector("#signin-username");
@@ -494,20 +569,19 @@ if (signinForm) {
     }
 
     try {
-      const services = getFirebaseServices();
-      if (!services) {
-        const email = emailField.value.trim().toLowerCase();
-        const users = readLocalUsers();
-        const user = users.find((entry) => entry.email === email);
-        if (!user || user.passwordHash !== localPasswordHash(passwordField.value)) {
+      const email = emailField.value.trim().toLowerCase();
+      const users = readLocalUsers();
+      const localUser = users.find((entry) => entry.email === email);
+      if (localUser) {
+        if (localUser.passwordHash !== localPasswordHash(passwordField.value)) {
           note.textContent = "Invalid email or password.";
           note.classList.add("form-error");
           return;
         }
-        localStorage.setItem("currentUserEmail", user.email || "");
+        localStorage.setItem("currentUserEmail", localUser.email || "");
         localStorage.setItem(
           "currentUserName",
-          `${user.firstName || ""} ${user.lastName || ""}`.trim()
+          `${localUser.firstName || ""} ${localUser.lastName || ""}`.trim()
         );
         const profiles = readLocalProfiles();
         const hasProfile =
@@ -518,8 +592,15 @@ if (signinForm) {
         return;
       }
 
+      const services = getFirebaseServices();
+      if (!services) {
+        note.textContent = "Invalid email or password.";
+        note.classList.add("form-error");
+        return;
+      }
+
       const credential = await services.auth.signInWithEmailAndPassword(
-        emailField.value.trim().toLowerCase(),
+        email,
         passwordField.value
       );
 
