@@ -6,7 +6,7 @@
     <title>Membership | Nigeria Dating</title>
     <meta
       name="description"
-      content="Compare Free, Silver, and Gold membership plans."
+      content="Compare Free, Silver, Gold, and Platinum membership plans."
     />
     <link rel="stylesheet" href="styles.css" />
     <script defer src="app.js"></script>
@@ -28,7 +28,7 @@
         <h1 class="page-title">Choose the plan that fits how you date</h1>
         <p class="page-intro">
           Free keeps messaging open. Silver adds a highlighted profile and no ads.
-          Gold adds unlimited reading and priority messaging in one package.
+          Gold adds unlimited reading. Platinum adds priority messaging.
         </p>
         <div class="membership-current">
           <strong>Current plan: <span data-current-plan>Free</span></strong>
@@ -54,7 +54,7 @@
 
         <article class="card membership-card membership-card-silver" data-plan-card="silver">
           <p class="membership-tier">Silver</p>
-          <h2>$9<span>/mo</span></h2>
+          <h2>$5<span>/mo</span></h2>
           <p class="membership-price-note">Starter paid tier</p>
           <ul class="membership-feature-list">
             <li>Unlimited message sending</li>
@@ -70,8 +70,23 @@
 
         <article class="card membership-card membership-card-gold" data-plan-card="gold">
           <p class="membership-tier">Gold</p>
-          <h2>$19<span>/mo</span></h2>
-          <p class="membership-price-note">All-in premium package</p>
+          <h2>$9<span>/mo</span></h2>
+          <p class="membership-price-note">Unlimited reading</p>
+          <ul class="membership-feature-list">
+            <li>Unlimited message sending</li>
+            <li>Read unlimited incoming messages</li>
+            <li>Your profile gets highlighted</li>
+            <li>No ads</li>
+          </ul>
+          <button class="button primary" type="button" data-select-plan="gold">
+            Choose plan
+          </button>
+        </article>
+
+        <article class="card membership-card membership-card-platinum" data-plan-card="platinum">
+          <p class="membership-tier">Platinum</p>
+          <h2>$39<span>/mo</span></h2>
+          <p class="membership-price-note">Top visibility</p>
           <ul class="membership-feature-list">
             <li>Unlimited message sending</li>
             <li>Read unlimited incoming messages</li>
@@ -79,7 +94,7 @@
             <li>Your profile gets highlighted</li>
             <li>No ads</li>
           </ul>
-          <button class="button primary" type="button" data-select-plan="gold">
+          <button class="button primary" type="button" data-select-plan="platinum">
             Choose plan
           </button>
         </article>
