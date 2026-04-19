@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function userEmail() {
+      return request.auth.token.email;
+    }
+
+    function ownsEmail(email) {
+      return signedIn() && email is string && email == userEmail();
+    }
+
+    function isParticipant(data) {
+      return signedIn()
+        && (data.a == userEmail() || data.b == userEmail());
+    }
+
+    function isMessageParticipant(data) {
+      return signedIn()
+        && (data.from == userEmail() || data.to == userEmail());
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn()
+        && request.auth.uid == userId
+        && ownsEmail(request.resource.data.email);
+    }
+
+    match /profiles/{profileId} {
+      allow read: if signedIn();
+      allow create, update, delete: if ownsEmail(request.resource.data.email);
+    }
+
+    match /likes/{likeId} {
+      allow read: if signedIn()
+        && (resource.data.from == userEmail()
+          || resource.data.to == userEmail());
+      allow create, update, delete: if ownsEmail(request.resource.data.from);
+    }
+
+    match /chatThreads/{threadId} {
+      allow read: if isParticipant(resource.data);
+      allow create, update, delete: if isParticipant(request.resource.data);
+    }
+
+    match /chatMessages/{messageId} {
+      allow read: if isMessageParticipant(resource.data);
+      allow create, update, delete: if isMessageParticipant(request.resource.data)
+        && ownsEmail(request.resource.data.from);
+    }
+
+    match /memberships/{memberId} {
+      allow read: if signedIn();
+      allow create, update, delete: if ownsEmail(request.resource.data.email);
+    }
+
+    match /likeSeen/{userId} {
+      allow read: if ownsEmail(resource.data.email);
+      allow create, update, delete: if ownsEmail(request.resource.data.email);
+    }
+
+    match /messageSeen/{userId} {
+      allow read: if ownsEmail(resource.data.email);
+      allow create, update, delete: if ownsEmail(request.resource.data.email);
+    }
+
+    match /dashboardFilters/{userId} {
+      allow read: if ownsEmail(resource.data.email);
+      allow create, update, delete: if ownsEmail(request.resource.data.email);
+    }
+  }
+}

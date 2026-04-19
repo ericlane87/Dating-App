@@ -162,7 +162,11 @@ if (profileMenuToggle && profileMenu) {
 
 const logoutButton = document.querySelector("[data-logout-button]");
 if (logoutButton) {
-  logoutButton.addEventListener("click", () => {
+  logoutButton.addEventListener("click", async () => {
+    const services = getFirebaseServices();
+    if (services?.auth) {
+      await services.auth.signOut();
+    }
     localStorage.removeItem("currentUserEmail");
     localStorage.removeItem("currentUserName");
     window.location.href = "signin.html";
@@ -174,6 +178,144 @@ const getFirebaseServices = () => {
     return null;
   }
   return window.firebaseServices;
+};
+
+const REMOTE_DATA_CACHE = {
+  loaded: false,
+  users: [],
+  profiles: {},
+  likes: [],
+  likeSeen: {},
+  chatThreads: [],
+  chatMessages: [],
+  messageSeen: {},
+  dashboardFilters: {},
+  memberships: {}
+};
+
+const isFirebaseDataEnabled = () => Boolean(getFirebaseServices()?.db);
+
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+
+const toFirestoreId = (value) =>
+  encodeURIComponent(String(value || "").trim().toLowerCase()).replace(/\./g, "%2E");
+
+const fromFirestoreId = (value) =>
+  decodeURIComponent(String(value || "").replace(/%2E/g, "."));
+
+const getCurrentUserFilterKey = () => normalizeEmail(getCurrentUserEmail()) || "anonymous";
+
+const readCollectionDocs = async (db, collectionName, keyMapper = (doc) => doc.id) => {
+  const snapshot = await db.collection(collectionName).get();
+  const output = {};
+  snapshot.forEach((doc) => {
+    output[keyMapper(doc)] = doc.data() || {};
+  });
+  return output;
+};
+
+const loadFirebaseAppData = async () => {
+  const services = getFirebaseServices();
+  if (!services?.db) {
+    REMOTE_DATA_CACHE.loaded = true;
+    return;
+  }
+  const authUser = await new Promise((resolve) => {
+    let unsubscribe = () => {};
+    unsubscribe = services.auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+  if (!authUser) {
+    REMOTE_DATA_CACHE.loaded = true;
+    return;
+  }
+  localStorage.setItem("currentUserEmail", authUser.email || "");
+  localStorage.setItem("currentUserName", authUser.displayName || "");
+
+  const authEmail = normalizeEmail(authUser.email);
+  const encodedAuthEmail = toFirestoreId(authEmail);
+  const [
+    usersSnapshot,
+    profiles,
+    likesFromSnapshot,
+    likesToSnapshot,
+    chatThreadsASnapshot,
+    chatThreadsBSnapshot,
+    chatMessagesFromSnapshot,
+    chatMessagesToSnapshot,
+    likeSeenDoc,
+    messageSeenDoc,
+    dashboardFiltersDoc,
+    memberships
+  ] = await Promise.all([
+    services.db.collection("users").get(),
+    readCollectionDocs(services.db, "profiles", (doc) => fromFirestoreId(doc.id)),
+    services.db.collection("likes").where("from", "==", authEmail).get(),
+    services.db.collection("likes").where("to", "==", authEmail).get(),
+    services.db.collection("chatThreads").where("a", "==", authEmail).get(),
+    services.db.collection("chatThreads").where("b", "==", authEmail).get(),
+    services.db.collection("chatMessages").where("from", "==", authEmail).get(),
+    services.db.collection("chatMessages").where("to", "==", authEmail).get(),
+    services.db.collection("likeSeen").doc(encodedAuthEmail).get(),
+    services.db.collection("messageSeen").doc(encodedAuthEmail).get(),
+    services.db.collection("dashboardFilters").doc(encodedAuthEmail).get(),
+    readCollectionDocs(services.db, "memberships", (doc) => fromFirestoreId(doc.id))
+  ]);
+
+  REMOTE_DATA_CACHE.users = [];
+  usersSnapshot.forEach((doc) => {
+    const data = doc.data() || {};
+    REMOTE_DATA_CACHE.users.push({
+      id: doc.id,
+      firstName: data.firstName || "",
+      lastName: data.lastName || "",
+      phone: data.phone || "",
+      email: normalizeEmail(data.email),
+      createdAt: data.createdAt || ""
+    });
+  });
+  REMOTE_DATA_CACHE.profiles = profiles;
+  REMOTE_DATA_CACHE.likes = [];
+  const likesById = new Map();
+  likesFromSnapshot.forEach((doc) => likesById.set(doc.id, { id: doc.id, ...(doc.data() || {}) }));
+  likesToSnapshot.forEach((doc) => likesById.set(doc.id, { id: doc.id, ...(doc.data() || {}) }));
+  REMOTE_DATA_CACHE.likes = Array.from(likesById.values());
+  REMOTE_DATA_CACHE.chatThreads = [];
+  const threadsById = new Map();
+  chatThreadsASnapshot.forEach((doc) => threadsById.set(doc.id, { id: doc.id, ...(doc.data() || {}) }));
+  chatThreadsBSnapshot.forEach((doc) => threadsById.set(doc.id, { id: doc.id, ...(doc.data() || {}) }));
+  REMOTE_DATA_CACHE.chatThreads = Array.from(threadsById.values());
+  REMOTE_DATA_CACHE.chatMessages = [];
+  const messagesById = new Map();
+  chatMessagesFromSnapshot.forEach((doc) => messagesById.set(doc.id, { id: doc.id, ...(doc.data() || {}) }));
+  chatMessagesToSnapshot.forEach((doc) => messagesById.set(doc.id, { id: doc.id, ...(doc.data() || {}) }));
+  REMOTE_DATA_CACHE.chatMessages = Array.from(messagesById.values());
+  REMOTE_DATA_CACHE.likeSeen = likeSeenDoc.exists
+    ? { [authEmail]: Number((likeSeenDoc.data() || {}).count || 0) }
+    : {};
+  REMOTE_DATA_CACHE.messageSeen = messageSeenDoc.exists
+    ? { [authEmail]: Number((messageSeenDoc.data() || {}).count || 0) }
+    : {};
+  REMOTE_DATA_CACHE.dashboardFilters = dashboardFiltersDoc.exists
+    ? { [authEmail]: dashboardFiltersDoc.data() || {} }
+    : {};
+  REMOTE_DATA_CACHE.memberships = Object.fromEntries(
+    Object.entries(memberships).map(([key, value]) => [key, value.plan || "free"])
+  );
+  REMOTE_DATA_CACHE.loaded = true;
+};
+
+const appDataReady = loadFirebaseAppData().catch((error) => {
+  console.error("Unable to load Firebase app data.", error);
+  REMOTE_DATA_CACHE.loaded = true;
+});
+
+const whenAppDataReady = (callback) => {
+  appDataReady.then(callback).catch((error) => {
+    console.error("Unable to initialize page data.", error);
+  });
 };
 
 const LOCAL_USERS_KEY = "localTestUsers";
@@ -286,6 +428,9 @@ const SEEDED_SAMPLE_PROFILES = [
 ];
 
 const readLocalUsers = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.users;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_USERS_KEY);
     if (!raw) return [];
@@ -297,10 +442,27 @@ const readLocalUsers = () => {
 };
 
 const writeLocalUsers = (users) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.users = Array.isArray(users) ? users : [];
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      const currentEmail = getCurrentUserEmail();
+      return Promise.all(REMOTE_DATA_CACHE.users
+        .filter((user) => normalizeEmail(user.email) === currentEmail)
+        .map((user) => {
+        const docId = user.uid || user.id || toFirestoreId(user.email);
+        return db.collection("users").doc(docId).set(user, { merge: true });
+      }));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
 };
 
 const readLocalProfiles = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.profiles;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_PROFILES_KEY);
     if (!raw) return {};
@@ -312,10 +474,33 @@ const readLocalProfiles = () => {
 };
 
 const writeLocalProfiles = (profiles) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.profiles = profiles && typeof profiles === "object" ? profiles : {};
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      const currentEmail = getCurrentUserEmail();
+      return Promise.all(Object.entries(REMOTE_DATA_CACHE.profiles)
+        .filter(([email]) => normalizeEmail(email) === currentEmail)
+        .map(([email, profile]) =>
+        db.collection("profiles").doc(toFirestoreId(email)).set(
+          {
+            ...(profile || {}),
+            email: normalizeEmail(email),
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        )
+      ));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
 };
 
 const readLocalLikes = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.likes;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_LIKES_KEY);
     if (!raw) return [];
@@ -327,10 +512,29 @@ const readLocalLikes = () => {
 };
 
 const writeLocalLikes = (likes) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.likes = Array.isArray(likes) ? likes : [];
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      const currentEmail = getCurrentUserEmail();
+      return Promise.all(REMOTE_DATA_CACHE.likes
+        .filter((like) => normalizeEmail(like.from) === currentEmail)
+        .map((like) => {
+        const id =
+          like.id ||
+          `${toFirestoreId(like.from)}__${toFirestoreId(like.to)}`;
+        return db.collection("likes").doc(id).set({ ...like, id }, { merge: true });
+      }));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_LIKES_KEY, JSON.stringify(likes));
 };
 
 const readLikeSeen = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.likeSeen;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_LIKE_SEEN_KEY);
     if (!raw) return {};
@@ -342,10 +546,31 @@ const readLikeSeen = () => {
 };
 
 const writeLikeSeen = (seenMap) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.likeSeen =
+      seenMap && typeof seenMap === "object" ? seenMap : {};
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      return Promise.all(Object.entries(REMOTE_DATA_CACHE.likeSeen).map(([email, count]) =>
+        db.collection("likeSeen").doc(toFirestoreId(email)).set(
+          {
+            email: normalizeEmail(email),
+            count: Number(count || 0),
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        )
+      ));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_LIKE_SEEN_KEY, JSON.stringify(seenMap));
 };
 
 const readLocalChatThreads = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.chatThreads;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_CHAT_THREADS_KEY);
     if (!raw) return [];
@@ -357,10 +582,24 @@ const readLocalChatThreads = () => {
 };
 
 const writeLocalChatThreads = (threads) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.chatThreads = Array.isArray(threads) ? threads : [];
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      return Promise.all(REMOTE_DATA_CACHE.chatThreads.map((thread) => {
+        const id = thread.id || `thread-${Date.now()}`;
+        return db.collection("chatThreads").doc(id).set({ ...thread, id }, { merge: true });
+      }));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_CHAT_THREADS_KEY, JSON.stringify(threads));
 };
 
 const readLocalChatMessages = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.chatMessages;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_CHAT_MESSAGES_KEY);
     if (!raw) return [];
@@ -372,10 +611,27 @@ const readLocalChatMessages = () => {
 };
 
 const writeLocalChatMessages = (messages) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.chatMessages = Array.isArray(messages) ? messages : [];
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      const currentEmail = getCurrentUserEmail();
+      return Promise.all(REMOTE_DATA_CACHE.chatMessages
+        .filter((message) => normalizeEmail(message.from) === currentEmail)
+        .map((message) => {
+        const id = message.id || `msg-${Date.now()}`;
+        return db.collection("chatMessages").doc(id).set({ ...message, id }, { merge: true });
+      }));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_CHAT_MESSAGES_KEY, JSON.stringify(messages));
 };
 
 const readMessageSeen = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.messageSeen;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_MESSAGE_SEEN_KEY);
     if (!raw) return {};
@@ -387,10 +643,31 @@ const readMessageSeen = () => {
 };
 
 const writeMessageSeen = (seenMap) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.messageSeen =
+      seenMap && typeof seenMap === "object" ? seenMap : {};
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      return Promise.all(Object.entries(REMOTE_DATA_CACHE.messageSeen).map(([email, count]) =>
+        db.collection("messageSeen").doc(toFirestoreId(email)).set(
+          {
+            email: normalizeEmail(email),
+            count: Number(count || 0),
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        )
+      ));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_MESSAGE_SEEN_KEY, JSON.stringify(seenMap));
 };
 
 const readDashboardFilters = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.dashboardFilters[getCurrentUserFilterKey()] || {};
+  }
   try {
     const raw = localStorage.getItem(LOCAL_DASH_FILTERS_KEY);
     if (!raw) return {};
@@ -402,10 +679,30 @@ const readDashboardFilters = () => {
 };
 
 const writeDashboardFilters = (filters) => {
+  if (isFirebaseDataEnabled()) {
+    const key = getCurrentUserFilterKey();
+    REMOTE_DATA_CACHE.dashboardFilters[key] =
+      filters && typeof filters === "object" ? filters : {};
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      return db.collection("dashboardFilters").doc(toFirestoreId(key)).set(
+        {
+          ...REMOTE_DATA_CACHE.dashboardFilters[key],
+          email: key,
+          updatedAt: new Date().toISOString()
+        },
+        { merge: true }
+      );
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_DASH_FILTERS_KEY, JSON.stringify(filters));
 };
 
 const readMembershipPlans = () => {
+  if (isFirebaseDataEnabled()) {
+    return REMOTE_DATA_CACHE.memberships;
+  }
   try {
     const raw = localStorage.getItem(LOCAL_MEMBERSHIPS_KEY);
     if (!raw) return {};
@@ -417,6 +714,27 @@ const readMembershipPlans = () => {
 };
 
 const writeMembershipPlans = (plans) => {
+  if (isFirebaseDataEnabled()) {
+    REMOTE_DATA_CACHE.memberships =
+      plans && typeof plans === "object" ? plans : {};
+    const db = getFirebaseServices()?.db;
+    if (db) {
+      const currentEmail = getCurrentUserEmail();
+      return Promise.all(Object.entries(REMOTE_DATA_CACHE.memberships)
+        .filter(([email]) => normalizeEmail(email) === currentEmail)
+        .map(([email, plan]) =>
+        db.collection("memberships").doc(toFirestoreId(email)).set(
+          {
+            email: normalizeEmail(email),
+            plan: normalizeMembershipPlan(plan),
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        )
+      ));
+    }
+    return;
+  }
   localStorage.setItem(LOCAL_MEMBERSHIPS_KEY, JSON.stringify(plans));
 };
 
@@ -444,7 +762,7 @@ const setMembershipPlan = (email, plan) => {
   }
   const plans = readMembershipPlans();
   plans[normalizedEmail] = normalizeMembershipPlan(plan);
-  writeMembershipPlans(plans);
+  return writeMembershipPlans(plans);
 };
 
 const hasPaidMembership = (email) =>
@@ -603,6 +921,9 @@ const createLocalUser = ({ firstName, lastName, phone, email, password }) => {
 };
 
 const seedHardcodedLocalTestUser = () => {
+  if (isFirebaseDataEnabled()) {
+    return;
+  }
   const users = readLocalUsers();
   HARDCODED_TEST_ACCOUNTS.forEach((entry) => {
     const exists = users.some((user) => user.email === entry.email);
@@ -920,7 +1241,14 @@ if (signinForm) {
         );
       }
 
-      const hasProfile = localStorage.getItem("hasProfile") === "true";
+      let hasProfile = localStorage.getItem("hasProfile") === "true";
+      if (services.db && credential.user?.email) {
+        const profileDoc = await services.db
+          .collection("profiles")
+          .doc(toFirestoreId(credential.user.email))
+          .get();
+        hasProfile = profileDoc.exists;
+      }
       window.location.href = hasProfile ? "dashboard.html" : "create-profile.html";
     } catch (error) {
       note.textContent = toAuthMessage(error, "Unable to login.");
@@ -932,6 +1260,10 @@ if (signinForm) {
     }
   });
 }
+
+whenAppDataReady(async () => {
+syncPersistentTopActionCounts();
+renderMembershipAd();
 
 const membershipPage = document.querySelector("[data-membership-page]");
 if (membershipPage) {
@@ -1257,7 +1589,7 @@ if (createProfileForm) {
         primaryPhotoIndex,
         completedAt: new Date().toISOString()
       };
-      writeLocalProfiles(profiles);
+      await writeLocalProfiles(profiles);
       createProfileExistingPhotos = photos.slice();
       createProfileExistingPrimaryIndex = primaryPhotoIndex;
     }
@@ -1657,7 +1989,7 @@ if (chatsApp) {
           createdAt: new Date().toISOString()
         };
         threads.push(thread);
-        writeLocalChatThreads(threads);
+        await writeLocalChatThreads(threads);
       }
     }
 
@@ -1779,7 +2111,7 @@ if (chatsApp) {
       });
     };
 
-    composeForm.addEventListener("submit", (event) => {
+    composeForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const text = composeInput.value.trim();
       if (!text || !activeThreadId) {
@@ -1799,7 +2131,7 @@ if (chatsApp) {
         text,
         at: new Date().toISOString()
       });
-      writeLocalChatMessages(messages);
+      await writeLocalChatMessages(messages);
       composeInput.value = "";
       renderThreads();
       renderMessages();
@@ -2005,7 +2337,7 @@ if (profileDetailRoot) {
     }
 
     if (messageModalSend && messageModalText) {
-      messageModalSend.addEventListener("click", () => {
+      messageModalSend.addEventListener("click", async () => {
         const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
           .trim()
           .toLowerCase();
@@ -2042,7 +2374,7 @@ if (profileDetailRoot) {
             createdAt: new Date().toISOString()
           };
           threads.push(thread);
-          writeLocalChatThreads(threads);
+          await writeLocalChatThreads(threads);
         }
 
         const messages = readLocalChatMessages();
@@ -2054,7 +2386,7 @@ if (profileDetailRoot) {
           text,
           at: new Date().toISOString()
         });
-        writeLocalChatMessages(messages);
+        await writeLocalChatMessages(messages);
 
         localStorage.setItem("pendingChatRecipientKey", key);
         localStorage.setItem("pendingChatRecipientName", display(record.profileName));
@@ -2089,7 +2421,7 @@ if (profileDetailRoot) {
         likeProfileButton.textContent = "Liked";
         likeProfileNote.textContent = "You already liked this profile.";
       } else {
-        likeProfileButton.addEventListener("click", () => {
+        likeProfileButton.addEventListener("click", async () => {
           const updatedLikes = readLocalLikes();
           const exists = updatedLikes.some(
             (entry) => entry.from === currentUserEmail && entry.to === key
@@ -2105,7 +2437,7 @@ if (profileDetailRoot) {
             to: key,
             at: new Date().toISOString()
           });
-          writeLocalLikes(updatedLikes);
+          await writeLocalLikes(updatedLikes);
           likeProfileButton.classList.add("is-liked");
           likeProfileButton.textContent = "Liked";
           likeProfileNote.textContent = "Profile liked. They will get an alert.";
@@ -2114,6 +2446,8 @@ if (profileDetailRoot) {
     }
   }
 }
+
+});
 
 const locationField = document.querySelector("[data-location-field]");
 if (locationField && "geolocation" in navigator) {
@@ -2196,6 +2530,7 @@ if (locationField && "geolocation" in navigator) {
 const photoInput = document.querySelector("[data-profile-photo-input]");
 const photoPreviews = document.querySelector("[data-photo-previews]");
 const primaryPhoto = document.querySelector("[data-primary-photo]");
+whenAppDataReady(() => {
 if (photoInput && photoPreviews && primaryPhoto) {
   const renderPreviews = (sources, selectedIndex = 0) => {
     photoPreviews.innerHTML = "";
@@ -2267,6 +2602,7 @@ if (photoInput && photoPreviews && primaryPhoto) {
     );
   }
 }
+});
 
 const bioField = document.querySelector("#profile-bio");
 const bioEmojiButtons = document.querySelectorAll("[data-bio-emoji]");
