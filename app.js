@@ -700,6 +700,35 @@ const toAuthMessage = (error, fallback) => {
   return fallback;
 };
 
+const splitDisplayName = (displayName) => {
+  const parts = String(displayName || "").trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" ")
+  };
+};
+
+const saveFirebaseUserDocument = async (services, user, details = {}) => {
+  if (!services || !services.db || !user) {
+    return;
+  }
+  const nameParts = splitDisplayName(user.displayName);
+  const firstName = details.firstName ?? nameParts.firstName;
+  const lastName = details.lastName ?? nameParts.lastName;
+  await services.db.collection("users").doc(user.uid).set(
+    {
+      uid: user.uid,
+      firstName,
+      lastName,
+      phone: details.phone ?? "",
+      email: details.email ?? user.email ?? "",
+      updatedAt: new Date().toISOString(),
+      createdAt: details.createdAt ?? new Date().toISOString()
+    },
+    { merge: true }
+  );
+};
+
 const signupForm = document.querySelector("[data-signup-form]");
 if (signupForm) {
   signupForm.addEventListener("submit", async (event) => {
@@ -790,19 +819,13 @@ if (signupForm) {
         });
       }
 
-      if (services.db && credential.user) {
-        await services.db.collection("users").doc(credential.user.uid).set(
-          {
-            uid: credential.user.uid,
-            firstName,
-            lastName,
-            phone,
-            email,
-            createdAt: new Date().toISOString()
-          },
-          { merge: true }
-        );
-      }
+      await saveFirebaseUserDocument(services, credential.user, {
+        firstName,
+        lastName,
+        phone,
+        email,
+        createdAt: new Date().toISOString()
+      });
 
       note.textContent = "Account created. Redirecting to sign in...";
       setTimeout(() => {
@@ -889,6 +912,7 @@ if (signinForm) {
       );
 
       if (credential.user) {
+        await saveFirebaseUserDocument(services, credential.user);
         localStorage.setItem("currentUserEmail", credential.user.email || "");
         localStorage.setItem(
           "currentUserName",
