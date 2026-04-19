@@ -891,6 +891,34 @@ const fileToDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+const uploadProfilePhoto = async (file, userEmail) => {
+  const formData = new FormData();
+  formData.append("photo", file);
+  formData.append("userEmail", userEmail || "anonymous");
+
+  const response = await fetch("/api/bunny/profile-photo", {
+    method: "POST",
+    body: formData
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.url) {
+    throw new Error(payload.error || "Unable to upload profile photo.");
+  }
+  return payload.url;
+};
+
+const getProfilePhotoSources = async (files, userEmail) => {
+  if (!files.length) {
+    return [];
+  }
+  try {
+    return await Promise.all(files.map((file) => uploadProfilePhoto(file, userEmail)));
+  } catch (error) {
+    console.warn("Bunny upload unavailable; falling back to temporary data URLs.", error);
+    return Promise.all(files.map((file) => fileToDataUrl(file)));
+  }
+};
+
 const createAvatarDataUrl = (name, background) => {
   const label = (name || "M").trim().charAt(0).toUpperCase() || "M";
   const bg = background || "#111111";
@@ -1550,7 +1578,7 @@ if (createProfileForm) {
       const formData = new FormData(createProfileForm);
       let photos = createProfileExistingPhotos.slice();
       if (files.length) {
-        photos = await Promise.all(files.map((file) => fileToDataUrl(file)));
+        photos = await getProfilePhotoSources(files, profileKey);
       }
       if (!photos.length) {
         alert("Please add at least one photo.");
