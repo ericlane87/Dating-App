@@ -64,11 +64,11 @@ const buildPersistentTopActionsMarkup = () => {
   return `
     <div class="persistent-top-actions" data-persistent-actions>
       <a data-nav="chats" href="${chatsHref}">
-        Messages <span class="nav-badge" data-messages-badge hidden>0</span>
+        Messages ${currentUserEmail ? '<span class="nav-badge" data-messages-badge hidden>0</span>' : ""}
       </a>
       ${filterControl}
       <a data-nav="liked-you" href="${likesHref}">
-        Likes <span class="nav-badge" data-likes-badge hidden>0</span>
+        Likes ${currentUserEmail ? '<span class="nav-badge" data-likes-badge hidden>0</span>' : ""}
       </a>
       ${upgradeControl}
       <div class="profile-menu">
@@ -1692,6 +1692,9 @@ if (dashboardGrid) {
   const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
+  if (!currentUserEmail) {
+    window.location.href = "signin.html";
+  }
   const messageCount = currentUserEmail
     ? localChatMessages.filter((entry) => entry && entry.to === currentUserEmail).length
     : 0;
