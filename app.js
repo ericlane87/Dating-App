@@ -8,8 +8,49 @@ const getCurrentUserName = () => (localStorage.getItem("currentUserName") || "")
 const buildPersistentTopActionsMarkup = () => {
   const currentUserEmail = getCurrentUserEmail();
   const currentUserName = getCurrentUserName();
+  const showSignedInTopActions =
+    Boolean(currentUserEmail) && !["signin", "signup"].includes(pageName);
   const chatsHref = currentUserEmail ? "chats.html" : "signin.html";
   const likesHref = currentUserEmail ? "liked-you.html" : "signin.html";
+  const dashboardOnlyActions =
+    showSignedInTopActions
+      ? `
+          <a data-nav="chats" href="${chatsHref}">
+            Messages <span class="nav-badge" data-messages-badge hidden>0</span>
+          </a>
+          ${
+            pageName === "dashboard"
+              ? `
+                  <button
+                    type="button"
+                    class="filter-toggle"
+                    data-filter-toggle
+                    aria-label="Open dashboard filters"
+                    title="Filter dashboard"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 5h18v2l-7 7v5l-4-2v-3L3 7z" />
+                    </svg>
+                  </button>
+                `
+              : `
+                  <a
+                    class="filter-toggle"
+                    href="dashboard.html?openFilters=1"
+                    aria-label="Open dashboard filters"
+                    title="Filter dashboard"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 5h18v2l-7 7v5l-4-2v-3L3 7z" />
+                    </svg>
+                  </a>
+                `
+          }
+          <a data-nav="liked-you" href="${likesHref}">
+            Likes <span class="nav-badge" data-likes-badge hidden>0</span>
+          </a>
+        `
+      : "";
   const upgradeControl =
     pageName === "dashboard" && currentUserEmail
       ? `
@@ -22,33 +63,6 @@ const buildPersistentTopActionsMarkup = () => {
           </button>
         `
       : "";
-  const filterControl =
-    pageName === "dashboard"
-      ? `
-          <button
-            type="button"
-            class="filter-toggle"
-            data-filter-toggle
-            aria-label="Open dashboard filters"
-            title="Filter dashboard"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 5h18v2l-7 7v5l-4-2v-3L3 7z" />
-            </svg>
-          </button>
-        `
-      : `
-          <a
-            class="filter-toggle"
-            href="${currentUserEmail ? "dashboard.html?openFilters=1" : "signin.html"}"
-            aria-label="Open dashboard filters"
-            title="Filter dashboard"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 5h18v2l-7 7v5l-4-2v-3L3 7z" />
-            </svg>
-          </a>
-        `;
   const profileMenuLinks = currentUserEmail
     ? `
         <a href="membership.html">Membership</a>
@@ -63,13 +77,7 @@ const buildPersistentTopActionsMarkup = () => {
 
   return `
     <div class="persistent-top-actions" data-persistent-actions>
-      <a data-nav="chats" href="${chatsHref}">
-        Messages ${currentUserEmail ? '<span class="nav-badge" data-messages-badge hidden>0</span>' : ""}
-      </a>
-      ${filterControl}
-      <a data-nav="liked-you" href="${likesHref}">
-        Likes ${currentUserEmail ? '<span class="nav-badge" data-likes-badge hidden>0</span>' : ""}
-      </a>
+      ${dashboardOnlyActions}
       ${upgradeControl}
       <div class="profile-menu">
         <button
@@ -370,68 +378,6 @@ const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
 const LOCAL_MEMBERSHIPS_KEY = "localMembershipPlans";
 const MEMBERSHIP_FREE_READ_LIMIT = 5;
 const PAID_MEMBERSHIP_PLANS = new Set(["premium"]);
-const HARDCODED_TEST_ACCOUNTS = [
-  {
-    firstName: "David",
-    lastName: "Cole",
-    phone: "+12025550101",
-    email: "david.cole@testmatch.com",
-    password: "David1234",
-    profileName: "David Cole",
-    location: "New York, USA",
-    gender: "male",
-    religion: "christian",
-    tribe: "yoruba",
-    languages: ["english"],
-    lookingFor: ["dating", "long-term"],
-    avatarColor: "#0f766e"
-  },
-  {
-    firstName: "Marcus",
-    lastName: "Hill",
-    phone: "+13125550102",
-    email: "marcus.hill@testmatch.com",
-    password: "Marcus1234",
-    profileName: "Marcus Hill",
-    location: "Chicago, USA",
-    gender: "male",
-    religion: "christian",
-    tribe: "igbo",
-    languages: ["english"],
-    lookingFor: ["dating"],
-    avatarColor: "#1d4ed8"
-  },
-  {
-    firstName: "Amina",
-    lastName: "Yusuf",
-    phone: "+14435550103",
-    email: "amina.yusuf@testmatch.com",
-    password: "Amina1234",
-    profileName: "Amina Yusuf",
-    location: "Abuja, Nigeria",
-    gender: "female",
-    religion: "muslim",
-    tribe: "hausa-fulani",
-    languages: ["english", "hausa"],
-    lookingFor: ["long-term", "marriage"],
-    avatarColor: "#b91c1c"
-  },
-  {
-    firstName: "Chioma",
-    lastName: "Okafor",
-    phone: "+447700900104",
-    email: "chioma.okafor@testmatch.com",
-    password: "Chioma1234",
-    profileName: "Chioma Okafor",
-    location: "London, UK",
-    gender: "female",
-    religion: "christian",
-    tribe: "igbo",
-    languages: ["english", "igbo"],
-    lookingFor: ["dating", "long-term"],
-    avatarColor: "#9333ea"
-  }
-];
 const SEEDED_SAMPLE_PROFILES = [
   {
     email: "amina@example.com",
@@ -994,48 +940,11 @@ const createLocalUser = ({ firstName, lastName, phone, email, password }) => {
   };
 };
 
-const seedHardcodedLocalTestUser = () => {
+const seedLocalSampleProfiles = () => {
   if (isFirebaseDataEnabled()) {
     return;
   }
-  const users = readLocalUsers();
-  HARDCODED_TEST_ACCOUNTS.forEach((entry) => {
-    const exists = users.some((user) => user.email === entry.email);
-    if (exists) {
-      return;
-    }
-    users.push(
-      createLocalUser({
-        firstName: entry.firstName,
-        lastName: entry.lastName,
-        phone: entry.phone,
-        email: entry.email,
-        password: entry.password
-      })
-    );
-  });
-  writeLocalUsers(users);
-
   const profiles = readLocalProfiles();
-  HARDCODED_TEST_ACCOUNTS.forEach((entry) => {
-    if (profiles[entry.email]) {
-      return;
-    }
-    profiles[entry.email] = {
-      profileName: entry.profileName,
-      location: entry.location,
-      bio: "Hard-coded test account for sign-in demos.",
-      gender: entry.gender,
-      religion: entry.religion,
-      tribe: entry.tribe,
-      languages: entry.languages,
-      lookingFor: entry.lookingFor,
-      photos: [createAvatarDataUrl(entry.profileName, entry.avatarColor)],
-      primaryPhotoIndex: 0,
-      completedAt: new Date().toISOString()
-    };
-  });
-
   SEEDED_SAMPLE_PROFILES.forEach((entry) => {
     if (profiles[entry.email]) {
       return;
@@ -1067,7 +976,7 @@ const getOppositeGender = (gender) => {
   return "";
 };
 
-seedHardcodedLocalTestUser();
+seedLocalSampleProfiles();
 syncPersistentTopActionCounts();
 renderMembershipAd();
 
@@ -1239,20 +1148,6 @@ if (signupForm) {
 
 const signinForm = document.querySelector("[data-signin-form]");
 if (signinForm) {
-  const hardcodedSigninButtons = document.querySelectorAll("[data-fill-signin]");
-  hardcodedSigninButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const emailField = signinForm.querySelector("#signin-username");
-      const passwordField = signinForm.querySelector("#signin-password");
-      if (!emailField || !passwordField) {
-        return;
-      }
-      emailField.value = button.getAttribute("data-email") || "";
-      passwordField.value = button.getAttribute("data-password") || "";
-      emailField.focus();
-    });
-  });
-
   signinForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const emailField = signinForm.querySelector("#signin-username");
