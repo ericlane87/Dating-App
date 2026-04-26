@@ -6,7 +6,7 @@
     <title>Membership | Nigeria Dating</title>
     <meta
       name="description"
-      content="Compare Free, Silver, Gold, and Platinum membership plans."
+      content="Compare Free and Premium membership plans."
     />
     <link rel="stylesheet" href="styles.css" />
     <script defer src="app.js"></script>
@@ -27,8 +27,9 @@
         <p class="badge">Membership</p>
         <h1 class="page-title">Choose the plan that fits how you date</h1>
         <p class="page-intro">
-          Free keeps messaging open. Silver adds a highlighted profile and no ads.
-          Gold adds unlimited reading. Platinum adds priority messaging.
+          Free keeps messaging open. Premium combines every paid benefit into one
+          plan: no ads, a highlighted profile, unlimited reading, and priority
+          inbox placement.
         </p>
         <div class="membership-current">
           <strong>Current plan: <span data-current-plan>Free</span></strong>
@@ -52,49 +53,18 @@
           </button>
         </article>
 
-        <article class="card membership-card membership-card-silver" data-plan-card="silver">
-          <p class="membership-tier">Silver</p>
-          <h2>$4<span>/mo</span></h2>
-          <p class="membership-price-note">Starter paid tier</p>
+        <article class="card membership-card membership-card-premium" data-plan-card="premium">
+          <p class="membership-tier">Premium</p>
+          <h2>$3.99<span>/mo</span></h2>
+          <p class="membership-price-note">All paid benefits in one plan</p>
           <ul class="membership-feature-list">
             <li>Unlimited message sending</li>
-            <li>Read 5 incoming messages each month</li>
-            <li>Your profile gets highlighted</li>
+            <li>Read unlimited incoming messages</li>
             <li>No ads anywhere on the site</li>
-            <li>Standard inbox placement</li>
-          </ul>
-          <button class="button primary" type="button" data-select-plan="silver">
-            Choose plan
-          </button>
-        </article>
-
-        <article class="card membership-card membership-card-gold" data-plan-card="gold">
-          <p class="membership-tier">Gold</p>
-          <h2>$15<span>/mo</span></h2>
-          <p class="membership-price-note">Unlimited reading</p>
-          <ul class="membership-feature-list">
-            <li>Unlimited message sending</li>
-            <li>Read unlimited incoming messages</li>
             <li>Your profile gets highlighted</li>
-            <li>No ads</li>
-          </ul>
-          <button class="button primary" type="button" data-select-plan="gold">
-            Choose plan
-          </button>
-        </article>
-
-        <article class="card membership-card membership-card-platinum" data-plan-card="platinum">
-          <p class="membership-tier">Platinum</p>
-          <h2>$39<span>/mo</span></h2>
-          <p class="membership-price-note">Top visibility</p>
-          <ul class="membership-feature-list">
-            <li>Unlimited message sending</li>
-            <li>Read unlimited incoming messages</li>
             <li>Priority messaging placement in inboxes</li>
-            <li>Your profile gets highlighted</li>
-            <li>No ads</li>
           </ul>
-          <button class="button primary" type="button" data-select-plan="platinum">
+          <button class="button primary" type="button" data-select-plan="premium">
             Choose plan
           </button>
         </article>

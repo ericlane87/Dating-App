@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA Checklist | Nigeria Dating</title>
+    <meta
+      name="description"
+      content="Production-readiness QA checklist for Nigeria Dating."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <a class="brand floating-logo" href="dashboard.html">
+      <span class="brand-mark" aria-hidden="true">ND</span>
+      <strong>Nigeria Dating</strong>
+    </a>
+    <main class="qa-main">
+      <section class="card qa-hero">
+        <p class="badge">QA Checklist</p>
+        <h1 class="page-title">Production Readiness Test Plan</h1>
+        <p class="page-intro">
+          Use this page as the full test checklist before launch. The sections are
+          grouped by user flow, risk area, and launch-critical behavior.
+        </p>
+        <div class="qa-summary">
+          <div class="list-item">
+            <strong>Goal</strong>
+            <p>Catch broken flows, unsafe data access, bad UX, and cost or scale issues before launch.</p>
+          </div>
+          <div class="list-item">
+            <strong>Focus</strong>
+            <p>Auth, profiles, dashboard, likes, chats, membership, uploads, security, and production ops.</p>
+          </div>
+          <div class="list-item">
+            <strong>Rule</strong>
+            <p>No feature is production ready until both happy-path and failure-path behavior are tested.</p>
+          </div>
+        </div>
+      </section>
+
+      <nav class="card qa-toc" aria-label="Checklist sections">
+        <a href="#user-flows">User Flows</a>
+        <a href="#profiles">Profiles</a>
+        <a href="#uploads">Photo Uploads</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#likes-messaging">Likes and Messaging</a>
+        <a href="#membership">Membership</a>
+        <a href="#security">Security</a>
+        <a href="#data">Data Integrity</a>
+        <a href="#ux">UX and Accessibility</a>
+        <a href="#performance">Performance and Launch Ops</a>
+      </nav>
+
+      <section class="qa-grid">
+        <article class="card qa-card" id="user-flows">
+          <h2>User Flows</h2>
+          <ul class="qa-list">
+            <li>Landing page loads cleanly and all key navigation links work.</li>
+            <li>Sign up succeeds with valid data and blocks invalid or missing required fields.</li>
+            <li>Sign in works with correct credentials and fails cleanly with wrong credentials.</li>
+            <li>Sign out clears session state and redirects correctly.</li>
+            <li>Returning signed-in users are routed to the right page after login.</li>
+            <li>Signed-out users cannot perform protected actions.</li>
+            <li>Session persistence works after refresh and browser reopen.</li>
+            <li>Broken or expired auth state does not cause loops or blank screens.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="profiles">
+          <h2>Profiles</h2>
+          <ul class="qa-list">
+            <li>All required profile fields validate correctly.</li>
+            <li>Optional fields save correctly when left empty.</li>
+            <li>Editing a profile updates the correct user record only.</li>
+            <li>Multi-select values like languages and looking-for save and reload correctly.</li>
+            <li>Conditional fields like tribe, kids, and kids count show and hide correctly.</li>
+            <li>Long bios, unusual names, and special characters do not break layout or storage.</li>
+            <li>Numeric fields reject invalid values.</li>
+            <li>Saved profile data displays correctly on profile and detail pages.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="uploads">
+          <h2>Photo Uploads</h2>
+          <ul class="qa-list">
+            <li>Only JPG, PNG, WEBP, and GIF uploads are accepted.</li>
+            <li>The 8 MB file-size limit is enforced correctly.</li>
+            <li>Uploading one to five photos works without corruption.</li>
+            <li>Uploading more than five photos is blocked.</li>
+            <li>Primary photo selection saves correctly.</li>
+            <li>Failed Bunny uploads show readable error messages.</li>
+            <li>Slow uploads do not freeze the UI.</li>
+            <li>Broken or missing image URLs fail gracefully.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="dashboard">
+          <h2>Dashboard and Discovery</h2>
+          <ul class="qa-list">
+            <li>The dashboard loads matching profiles and never shows the current user as a card.</li>
+            <li>Opposite-sex filtering behaves correctly for all supported profile combinations.</li>
+            <li>Empty-state messaging appears correctly when no profiles match.</li>
+            <li>Profile cards render correctly with and without photos.</li>
+            <li>Clicking a card opens the correct profile detail page.</li>
+            <li>Religion, location, and looking-for filters work alone and in combination.</li>
+            <li>Filter state persists correctly for the current user.</li>
+            <li>Dashboard remains usable with larger profile counts.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="likes-messaging">
+          <h2>Likes and Messaging</h2>
+          <ul class="qa-list">
+            <li>Users cannot like themselves.</li>
+            <li>Duplicate likes are blocked.</li>
+            <li>Like counts and like badges update correctly.</li>
+            <li>New chat threads are created only once for a user pair.</li>
+            <li>Existing chat threads are reused instead of duplicated.</li>
+            <li>Messages appear in the correct thread for both users.</li>
+            <li>Long messages, empty messages, and special characters are handled safely.</li>
+            <li>Unread counts and seen-state tracking stay in sync with actual messages.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="membership">
+          <h2>Membership and Premium</h2>
+          <ul class="qa-list">
+            <li>Free users get free limitations only.</li>
+            <li>Premium users get all paid benefits everywhere in the app.</li>
+            <li>The dashboard upgrade button appears only for signed-in non-premium users.</li>
+            <li>Clicking upgrade marks the user as premium immediately.</li>
+            <li>Premium users no longer see the upgrade button.</li>
+            <li>Ads disappear after premium activation.</li>
+            <li>Profile highlighting and premium badges render consistently.</li>
+            <li>Legacy silver, gold, and platinum records resolve to premium correctly.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="security">
+          <h2>Security and Authorization</h2>
+          <ul class="qa-list">
+            <li>Signed-out users cannot write protected data.</li>
+            <li>Users cannot read or modify another user’s restricted records.</li>
+            <li>Firestore rules match actual app behavior for every collection.</li>
+            <li>Users cannot grant themselves premium by tampering with requests unless explicitly allowed.</li>
+            <li>Upload validation is enforced server-side, not just in the browser.</li>
+            <li>Stored XSS is blocked in names, bios, messages, and location fields.</li>
+            <li>Error messages do not leak secrets or sensitive server details.</li>
+            <li>Spam and abuse cases are tested for likes, messages, signups, and uploads.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="data">
+          <h2>Data Integrity</h2>
+          <ul class="qa-list">
+            <li>Email normalization is consistent across all collections.</li>
+            <li>Account, profile, membership, likes, and chat data all link to the same user identity.</li>
+            <li>Concurrent updates from two tabs do not silently overwrite critical data.</li>
+            <li>Membership changes update only the intended record.</li>
+            <li>Refreshing the app does not duplicate likes, threads, or messages.</li>
+            <li>Bad query params do not load the wrong profile or thread.</li>
+            <li>Local mode and Firebase mode do not hide production-only failures.</li>
+            <li>Corrupt or missing Firestore documents fail safely.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="ux">
+          <h2>UX and Accessibility</h2>
+          <ul class="qa-list">
+            <li>All pages work on desktop, tablet, and mobile.</li>
+            <li>Sticky header and top actions do not overlap content.</li>
+            <li>Menus, forms, and modals are keyboard accessible.</li>
+            <li>Visible focus states exist for all interactive elements.</li>
+            <li>Escape closes menus and modals where expected.</li>
+            <li>Text contrast remains readable across all screens.</li>
+            <li>Error states and loading states are clear and understandable.</li>
+            <li>Long names, long locations, and missing photos do not break layout.</li>
+          </ul>
+        </article>
+
+        <article class="card qa-card" id="performance">
+          <h2>Performance and Launch Ops</h2>
+          <ul class="qa-list">
+            <li>First load time is acceptable on slower mobile networks.</li>
+            <li>Dashboard and chat remain responsive with realistic production data volume.</li>
+            <li>Firestore reads are measured so cost is understood before launch.</li>
+            <li>Image sizes are optimized enough for mobile use.</li>
+            <li>Server logs capture upload failures and unexpected runtime errors.</li>
+            <li>Frontend errors are tracked somewhere in production.</li>
+            <li>Monitoring exists for uptime, latency, and failed requests.</li>
+            <li>Rollback and recovery steps are documented and tested.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

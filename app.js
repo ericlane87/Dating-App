@@ -10,6 +10,18 @@ const buildPersistentTopActionsMarkup = () => {
   const currentUserName = getCurrentUserName();
   const chatsHref = currentUserEmail ? "chats.html" : "signin.html";
   const likesHref = currentUserEmail ? "liked-you.html" : "signin.html";
+  const upgradeControl =
+    pageName === "dashboard" && currentUserEmail
+      ? `
+          <button
+            type="button"
+            class="button primary top-upgrade-button"
+            data-upgrade-button
+          >
+            Upgrade
+          </button>
+        `
+      : "";
   const filterControl =
     pageName === "dashboard"
       ? `
@@ -58,6 +70,7 @@ const buildPersistentTopActionsMarkup = () => {
       <a data-nav="liked-you" href="${likesHref}">
         Likes <span class="nav-badge" data-likes-badge hidden>0</span>
       </a>
+      ${upgradeControl}
       <div class="profile-menu">
         <button
           type="button"
@@ -118,6 +131,20 @@ const setBadgeCount = (selector, count) => {
   });
 };
 
+const hideUpgradeButtons = () => {
+  document.querySelectorAll("[data-upgrade-button]").forEach((button) => {
+    button.hidden = true;
+  });
+};
+
+const syncUpgradeButtonVisibility = () => {
+  const currentUserEmail = getCurrentUserEmail();
+  const shouldHide = !currentUserEmail || getMembershipPlan(currentUserEmail) === "premium";
+  document.querySelectorAll("[data-upgrade-button]").forEach((button) => {
+    button.hidden = shouldHide;
+  });
+};
+
 ensurePersistentTopActions();
 
 if (pageName) {
@@ -172,6 +199,20 @@ if (logoutButton) {
     window.location.href = "signin.html";
   });
 }
+
+document.querySelectorAll("[data-upgrade-button]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const currentUserEmail = getCurrentUserEmail();
+    if (!currentUserEmail) {
+      window.location.href = "signin.html";
+      return;
+    }
+    setMembershipPlan(currentUserEmail, "premium");
+    syncPersistentTopActionCounts();
+    renderMembershipAd();
+    hideUpgradeButtons();
+  });
+});
 
 const getFirebaseServices = () => {
   if (!window.firebaseReady || !window.firebaseServices) {
@@ -328,7 +369,7 @@ const LOCAL_MESSAGE_SEEN_KEY = "localMessageSeenByUser";
 const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
 const LOCAL_MEMBERSHIPS_KEY = "localMembershipPlans";
 const MEMBERSHIP_FREE_READ_LIMIT = 5;
-const PAID_MEMBERSHIP_PLANS = new Set(["silver", "gold", "platinum"]);
+const PAID_MEMBERSHIP_PLANS = new Set(["premium"]);
 const HARDCODED_TEST_ACCOUNTS = [
   {
     firstName: "David",
@@ -740,7 +781,10 @@ const writeMembershipPlans = (plans) => {
 
 const normalizeMembershipPlan = (plan) => {
   const normalized = String(plan || "").trim().toLowerCase();
-  if (["free", "silver", "gold", "platinum"].includes(normalized)) {
+  if (["silver", "gold", "platinum"].includes(normalized)) {
+    return "premium";
+  }
+  if (["free", "premium"].includes(normalized)) {
     return normalized;
   }
   return "free";
@@ -762,7 +806,9 @@ const setMembershipPlan = (email, plan) => {
   }
   const plans = readMembershipPlans();
   plans[normalizedEmail] = normalizeMembershipPlan(plan);
-  return writeMembershipPlans(plans);
+  const writeResult = writeMembershipPlans(plans);
+  syncUpgradeButtonVisibility();
+  return writeResult;
 };
 
 const hasPaidMembership = (email) =>
@@ -775,10 +821,12 @@ const getMembershipLabel = (plan) => {
 
 const isUnlimitedReadPlan = (email) => {
   const plan = getMembershipPlan(email);
-  return plan === "gold" || plan === "platinum";
+  return plan === "premium";
 };
 
-const isPriorityPlan = (email) => getMembershipPlan(email) === "platinum";
+const isPriorityPlan = (email) => getMembershipPlan(email) === "premium";
+
+syncUpgradeButtonVisibility();
 
 const getMonthKey = (value) => {
   const date = new Date(value || Date.now());
@@ -850,9 +898,7 @@ const applyMembershipHighlight = (element, email) => {
   }
   const plan = getMembershipPlan(email);
   element.classList.toggle("is-member-highlight", hasPaidMembership(email));
-  element.classList.toggle("is-member-silver", plan === "silver");
-  element.classList.toggle("is-member-gold", plan === "gold");
-  element.classList.toggle("is-member-platinum", plan === "platinum");
+  element.classList.toggle("is-member-premium", plan === "premium");
 };
 
 const renderMembershipAd = () => {
@@ -875,8 +921,8 @@ const renderMembershipAd = () => {
     <p class="badge">Sponsored</p>
     <h2 class="page-title">Upgrade for cleaner browsing</h2>
     <p class="page-intro">
-      Silver gives you no ads and a highlighted profile. Gold gives you unlimited reading.
-      Platinum adds priority messaging.
+      Premium removes ads, highlights your profile, unlocks unlimited reads,
+      and gives your messages priority placement.
     </p>
     <a class="button primary" href="membership.html">See membership plans</a>
   `;
@@ -1994,11 +2040,9 @@ if (chatsApp) {
       note.className = "membership-read-note";
       note.setAttribute("data-membership-read-note", "");
       note.textContent =
-        currentPlan === "free" || currentPlan === "silver"
+        currentPlan === "free"
           ? "Your plan includes 5 full incoming message reads each month."
-          : currentPlan === "platinum"
-            ? "Platinum includes unlimited reading and priority inbox placement."
-            : "Gold includes unlimited incoming message reading.";
+          : "Premium includes unlimited reading and priority inbox placement.";
       panelHead.appendChild(note);
     }
 

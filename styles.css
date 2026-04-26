@@ -131,6 +131,12 @@ main {
   gap: 14px;
 }
 
+.top-upgrade-button {
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
 .floating-top-actions {
   position: fixed;
   top: 20px;
@@ -894,6 +900,87 @@ select option {
   color: var(--muted);
 }
 
+.qa-main {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 48px 20px 100px;
+  display: grid;
+  gap: 20px;
+}
+
+.qa-hero {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 45, 45, 0.08), rgba(255, 45, 45, 0)),
+    var(--panel);
+}
+
+.qa-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.qa-summary .list-item {
+  display: grid;
+  gap: 8px;
+}
+
+.qa-summary .list-item p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.qa-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.qa-toc a {
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(17, 17, 17, 0.7);
+  color: var(--text);
+}
+
+.qa-toc a:hover {
+  border-color: rgba(255, 45, 45, 0.55);
+}
+
+.qa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.qa-card {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.qa-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.qa-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.qa-list li {
+  line-height: 1.5;
+}
+
 .list {
   display: grid;
   gap: 12px;
@@ -970,17 +1057,7 @@ select option {
   box-shadow: 0 18px 40px rgba(255, 215, 0, 0.08);
 }
 
-.is-member-silver {
-  border-color: rgba(203, 213, 225, 0.4);
-  box-shadow: 0 16px 36px rgba(203, 213, 225, 0.08);
-}
-
-.is-member-gold {
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 18px 40px rgba(245, 158, 11, 0.12);
-}
-
-.is-member-platinum {
+.is-member-premium {
   border-color: rgba(129, 140, 248, 0.45);
   box-shadow: 0 18px 44px rgba(129, 140, 248, 0.14);
 }
@@ -997,19 +1074,7 @@ select option {
   vertical-align: middle;
 }
 
-.membership-badge-silver {
-  background: rgba(203, 213, 225, 0.16);
-  border: 1px solid rgba(203, 213, 225, 0.35);
-  color: #e2e8f0;
-}
-
-.membership-badge-gold {
-  background: rgba(245, 158, 11, 0.18);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
-}
-
-.membership-badge-platinum {
+.membership-badge-premium {
   background: rgba(129, 140, 248, 0.16);
   border: 1px solid rgba(129, 140, 248, 0.35);
   color: #c7d2fe;
@@ -1196,17 +1261,9 @@ select option {
   color: var(--text);
 }
 
-.membership-card-silver {
-  border-color: rgba(203, 213, 225, 0.32);
-}
-
-.membership-card-gold {
-  border-color: rgba(245, 158, 11, 0.34);
-  transform: translateY(-4px);
-}
-
-.membership-card-platinum {
+.membership-card-premium {
   border-color: rgba(129, 140, 248, 0.36);
+  transform: translateY(-4px);
 }
 
 .membership-card.is-current-plan {
