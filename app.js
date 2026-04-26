@@ -378,41 +378,15 @@ const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
 const LOCAL_MEMBERSHIPS_KEY = "localMembershipPlans";
 const MEMBERSHIP_FREE_READ_LIMIT = 5;
 const PAID_MEMBERSHIP_PLANS = new Set(["premium"]);
-const SEEDED_SAMPLE_PROFILES = [
-  {
-    email: "amina@example.com",
-    profileName: "Amina Yusuf",
-    location: "Abuja",
-    gender: "female",
-    religion: "muslim",
-    tribe: "hausa-fulani",
-    languages: ["english", "hausa"],
-    lookingFor: ["long-term", "marriage"],
-    avatarColor: "#b91c1c"
-  },
-  {
-    email: "chioma@example.com",
-    profileName: "Chioma Okafor",
-    location: "Enugu",
-    gender: "female",
-    religion: "christian",
-    tribe: "igbo",
-    languages: ["english", "igbo"],
-    lookingFor: ["dating", "long-term"],
-    avatarColor: "#1d4ed8"
-  },
-  {
-    email: "tunde@example.com",
-    profileName: "Tunde Ade",
-    location: "Ibadan",
-    gender: "male",
-    religion: "christian",
-    tribe: "yoruba",
-    languages: ["english", "yoruba"],
-    lookingFor: ["dating"],
-    avatarColor: "#0f766e"
-  }
-];
+const LEGACY_TEST_EMAILS = new Set([
+  "david.cole@testmatch.com",
+  "marcus.hill@testmatch.com",
+  "amina.yusuf@testmatch.com",
+  "chioma.okafor@testmatch.com",
+  "amina@example.com",
+  "chioma@example.com",
+  "tunde@example.com"
+]);
 
 const readLocalUsers = () => {
   if (isFirebaseDataEnabled()) {
@@ -940,30 +914,34 @@ const createLocalUser = ({ firstName, lastName, phone, email, password }) => {
   };
 };
 
-const seedLocalSampleProfiles = () => {
-  if (isFirebaseDataEnabled()) {
-    return;
-  }
-  const profiles = readLocalProfiles();
-  SEEDED_SAMPLE_PROFILES.forEach((entry) => {
-    if (profiles[entry.email]) {
-      return;
+const purgeLegacyLocalTestData = () => {
+  try {
+    const rawUsers = localStorage.getItem(LOCAL_USERS_KEY);
+    if (rawUsers) {
+      const users = JSON.parse(rawUsers);
+      if (Array.isArray(users)) {
+        const filteredUsers = users.filter(
+          (entry) => !LEGACY_TEST_EMAILS.has(normalizeEmail(entry?.email))
+        );
+        localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(filteredUsers));
+      }
     }
-    profiles[entry.email] = {
-      profileName: entry.profileName,
-      location: entry.location,
-      bio: "Seeded local sample profile.",
-      gender: entry.gender,
-      religion: entry.religion,
-      tribe: entry.tribe,
-      languages: entry.languages,
-      lookingFor: entry.lookingFor,
-      photos: [createAvatarDataUrl(entry.profileName, entry.avatarColor)],
-      primaryPhotoIndex: 0,
-      completedAt: new Date().toISOString()
-    };
-  });
-  writeLocalProfiles(profiles);
+
+    const rawProfiles = localStorage.getItem(LOCAL_PROFILES_KEY);
+    if (rawProfiles) {
+      const profiles = JSON.parse(rawProfiles);
+      if (profiles && typeof profiles === "object") {
+        Object.keys(profiles).forEach((email) => {
+          if (LEGACY_TEST_EMAILS.has(normalizeEmail(email))) {
+            delete profiles[email];
+          }
+        });
+        localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
+      }
+    }
+  } catch (error) {
+    console.warn("Unable to purge legacy local test data.", error);
+  }
 };
 
 const getOppositeGender = (gender) => {
@@ -976,7 +954,7 @@ const getOppositeGender = (gender) => {
   return "";
 };
 
-seedLocalSampleProfiles();
+purgeLegacyLocalTestData();
 syncPersistentTopActionCounts();
 renderMembershipAd();
 
