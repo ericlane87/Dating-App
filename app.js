@@ -1,8 +1,13 @@
 "use strict";
 
 const pageName = document.body?.dataset?.page;
+const normalizeEmailInput = (value) =>
+  String(value || "")
+    .replace(/[\u00a0\u1680\u180e\u2000-\u200d\u2028\u2029\u202f\u205f\u3000\ufeff]/g, "")
+    .trim()
+    .toLowerCase();
 const getCurrentUserEmail = () =>
-  (localStorage.getItem("currentUserEmail") || "").trim().toLowerCase();
+  normalizeEmailInput(localStorage.getItem("currentUserEmail"));
 const getCurrentUserName = () => (localStorage.getItem("currentUserName") || "").trim();
 const clearStoredSession = () => {
   localStorage.removeItem("currentUserEmail");
@@ -260,10 +265,10 @@ const REMOTE_DATA_CACHE = {
 
 const isFirebaseDataEnabled = () => Boolean(getFirebaseServices()?.db);
 
-const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+const normalizeEmail = (value) => normalizeEmailInput(value);
 
 const toFirestoreId = (value) =>
-  encodeURIComponent(String(value || "").trim().toLowerCase()).replace(/\./g, "%2E");
+  encodeURIComponent(normalizeEmailInput(value)).replace(/\./g, "%2E");
 
 const fromFirestoreId = (value) =>
   decodeURIComponent(String(value || "").replace(/%2E/g, "."));
@@ -1136,7 +1141,7 @@ if (signupForm) {
         const firstName = firstNameField.value.trim();
         const lastName = lastNameField.value.trim();
         const phone = phoneField.value.trim();
-        const email = emailField.value.trim().toLowerCase();
+        const email = normalizeEmailInput(emailField.value);
         const users = readLocalUsers();
         const existing = users.find((entry) => entry.email === email);
         if (existing) {
@@ -1164,7 +1169,7 @@ if (signupForm) {
       const firstName = firstNameField.value.trim();
       const lastName = lastNameField.value.trim();
       const phone = phoneField.value.trim();
-      const email = emailField.value.trim().toLowerCase();
+      const email = normalizeEmailInput(emailField.value);
 
       const credential = await services.auth.createUserWithEmailAndPassword(
         email,
@@ -1220,7 +1225,7 @@ if (signinForm) {
     }
 
     try {
-      const email = emailField.value.trim().toLowerCase();
+      const email = normalizeEmailInput(emailField.value);
       const services = getFirebaseServices();
       if (services) {
         try {
