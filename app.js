@@ -1221,58 +1221,63 @@ if (signinForm) {
 
     try {
       const email = emailField.value.trim().toLowerCase();
-      const users = readLocalUsers();
-      const localUser = users.find((entry) => entry.email === email);
-      if (localUser) {
-        if (localUser.passwordHash !== localPasswordHash(passwordField.value)) {
-          note.textContent = "Invalid email or password.";
-          note.classList.add("form-error");
+      const services = getFirebaseServices();
+      if (services) {
+        try {
+          const credential = await services.auth.signInWithEmailAndPassword(
+            email,
+            passwordField.value
+          );
+
+          if (credential.user) {
+            await saveFirebaseUserDocument(services, credential.user);
+            localStorage.setItem("currentUserEmail", credential.user.email || "");
+            localStorage.setItem(
+              "currentUserName",
+              credential.user.displayName || ""
+            );
+          }
+
+          let hasProfile = localStorage.getItem("hasProfile") === "true";
+          if (services.db && credential.user?.email) {
+            const profileDoc = await services.db
+              .collection("profiles")
+              .doc(toFirestoreId(credential.user.email))
+              .get();
+            hasProfile = profileDoc.exists;
+          }
+          window.location.href = hasProfile ? "dashboard.html" : "create-profile.html";
           return;
+        } catch (error) {
+          const code = error && error.code ? error.code : "";
+          const canFallbackToLocal =
+            code === "auth/user-not-found" ||
+            code === "auth/wrong-password" ||
+            code === "auth/invalid-credential";
+          if (!canFallbackToLocal) {
+            throw error;
+          }
         }
-        localStorage.setItem("currentUserEmail", localUser.email || "");
-        localStorage.setItem(
-          "currentUserName",
-          `${localUser.firstName || ""} ${localUser.lastName || ""}`.trim()
-        );
-        const profiles = readLocalProfiles();
-        const hasProfile =
-          Boolean(profiles[email]) || localStorage.getItem("hasProfile") === "true";
-        window.location.href = hasProfile
-          ? "dashboard.html"
-          : "create-profile.html";
-        return;
       }
 
-      const services = getFirebaseServices();
-      if (!services) {
+      const users = readLocalUsers();
+      const localUser = users.find((entry) => entry.email === email);
+      if (!localUser || localUser.passwordHash !== localPasswordHash(passwordField.value)) {
         note.textContent = "Invalid email or password.";
         note.classList.add("form-error");
         return;
       }
-
-      const credential = await services.auth.signInWithEmailAndPassword(
-        email,
-        passwordField.value
+      localStorage.setItem("currentUserEmail", localUser.email || "");
+      localStorage.setItem(
+        "currentUserName",
+        `${localUser.firstName || ""} ${localUser.lastName || ""}`.trim()
       );
-
-      if (credential.user) {
-        await saveFirebaseUserDocument(services, credential.user);
-        localStorage.setItem("currentUserEmail", credential.user.email || "");
-        localStorage.setItem(
-          "currentUserName",
-          credential.user.displayName || ""
-        );
-      }
-
-      let hasProfile = localStorage.getItem("hasProfile") === "true";
-      if (services.db && credential.user?.email) {
-        const profileDoc = await services.db
-          .collection("profiles")
-          .doc(toFirestoreId(credential.user.email))
-          .get();
-        hasProfile = profileDoc.exists;
-      }
-      window.location.href = hasProfile ? "dashboard.html" : "create-profile.html";
+      const profiles = readLocalProfiles();
+      const hasProfile =
+        Boolean(profiles[email]) || localStorage.getItem("hasProfile") === "true";
+      window.location.href = hasProfile
+        ? "dashboard.html"
+        : "create-profile.html";
     } catch (error) {
       note.textContent = toAuthMessage(error, "Unable to login.");
       note.classList.add("form-error");
