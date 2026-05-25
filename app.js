@@ -687,7 +687,6 @@ const loadFirebaseAppData = async () => {
     });
   });
   REMOTE_DATA_CACHE.profiles = profiles;
-  rerenderPersistentTopActions();
   REMOTE_DATA_CACHE.likes = [];
   const likesById = new Map();
   likesFromSnapshot.forEach((doc) => likesById.set(doc.id, { id: doc.id, ...(doc.data() || {}) }));
@@ -800,7 +799,6 @@ const readLocalProfiles = () => {
 const writeLocalProfiles = (profiles) => {
   if (isFirebaseDataEnabled()) {
     REMOTE_DATA_CACHE.profiles = profiles && typeof profiles === "object" ? profiles : {};
-    rerenderPersistentTopActions();
     const db = getFirebaseServices()?.db;
     if (db) {
       const currentEmail = getCurrentUserEmail();
