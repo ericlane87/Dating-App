@@ -208,14 +208,44 @@ const ensureToastStack = () => {
   return stack;
 };
 
-const showToast = (message) => {
-  if (!message) {
+const showToast = (content) => {
+  if (!content) {
     return;
   }
   const stack = ensureToastStack();
   const toast = document.createElement("div");
   toast.className = "toast-card";
-  toast.textContent = message;
+  if (typeof content === "string") {
+    toast.textContent = content;
+  } else {
+    const media = document.createElement("div");
+    media.className = "toast-media";
+    if (content.imageSrc) {
+      const image = document.createElement("img");
+      image.src = content.imageSrc;
+      image.alt = "";
+      media.appendChild(image);
+    } else {
+      media.classList.add("is-fallback");
+      media.textContent = String(content.initial || "?").charAt(0).toUpperCase();
+    }
+
+    const body = document.createElement("div");
+    body.className = "toast-body";
+
+    const title = document.createElement("strong");
+    title.className = "toast-title";
+    title.textContent = content.title || "Notification";
+    body.appendChild(title);
+
+    const message = document.createElement("span");
+    message.className = "toast-message";
+    message.textContent = content.message || "";
+    body.appendChild(message);
+
+    toast.appendChild(media);
+    toast.appendChild(body);
+  }
   stack.appendChild(toast);
   window.setTimeout(() => {
     toast.classList.add("is-visible");
@@ -391,6 +421,23 @@ const clearFirebaseLiveSubscriptions = () => {
   FIREBASE_LIVE_STATE.currentEmail = "";
 };
 
+const getToastProfileContent = (email) => {
+  const profiles = readLocalProfiles();
+  const profile = profiles[normalizeEmail(email)] || {};
+  const name = profile.profileName || normalizeEmail(email) || "Someone";
+  const photos = Array.isArray(profile.photos) ? profile.photos : [];
+  const primaryIndex = Number.isInteger(profile.primaryPhotoIndex)
+    ? profile.primaryPhotoIndex
+    : 0;
+  const imageSrc = photos[primaryIndex] || photos[0] || "";
+  const initial = String(name || "?").trim().charAt(0).toUpperCase() || "?";
+  return {
+    name,
+    imageSrc,
+    initial
+  };
+};
+
 const startFirebaseLiveSubscriptions = (authEmail) => {
   const services = getFirebaseServices();
   if (!services?.db || !authEmail) {
@@ -430,9 +477,14 @@ const startFirebaseLiveSubscriptions = (authEmail) => {
 
       syncPersistentTopActionCounts();
       if (addedCount > 0 && pageName !== "liked-you") {
-        showToast(
-          addedCount === 1 ? "You received a new like." : `You received ${addedCount} new likes.`
-        );
+        const latestLike = inboundLikes[inboundLikes.length - 1];
+        const sender = getToastProfileContent(latestLike?.from);
+        showToast({
+          title: addedCount === 1 ? sender.name : `${sender.name} and ${addedCount - 1} more`,
+          message: addedCount === 1 ? "liked your profile" : "liked your profile",
+          imageSrc: sender.imageSrc,
+          initial: sender.initial
+        });
       }
     })
   );
@@ -460,16 +512,16 @@ const startFirebaseLiveSubscriptions = (authEmail) => {
 
       syncPersistentTopActionCounts();
       if (addedMessages.length > 0 && pageName !== "chats") {
-        const profiles = readLocalProfiles();
         const latestMessage = addedMessages[addedMessages.length - 1];
-        const senderEmail = normalizeEmail(latestMessage.from);
-        const senderName =
-          profiles[senderEmail]?.profileName || senderEmail || "Someone";
-        showToast(
-          addedMessages.length === 1
-            ? `New message from ${senderName}.`
-            : `${addedMessages.length} new messages.`
-        );
+        const sender = getToastProfileContent(latestMessage?.from);
+        showToast({
+          title: addedMessages.length === 1
+            ? sender.name
+            : `${sender.name} and ${addedMessages.length - 1} more`,
+          message: addedMessages.length === 1 ? "sent you a message" : "sent you messages",
+          imageSrc: sender.imageSrc,
+          initial: sender.initial
+        });
       }
     })
   );
