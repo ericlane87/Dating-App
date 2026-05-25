@@ -421,6 +421,10 @@ const clearFirebaseLiveSubscriptions = () => {
   FIREBASE_LIVE_STATE.currentEmail = "";
 };
 
+const dispatchLiveDataEvent = (type) => {
+  window.dispatchEvent(new CustomEvent("appdata:live-update", { detail: { type } }));
+};
+
 const getToastProfileContent = (email) => {
   const profiles = readLocalProfiles();
   const profile = profiles[normalizeEmail(email)] || {};
@@ -476,6 +480,7 @@ const startFirebaseLiveSubscriptions = (authEmail) => {
       }
 
       syncPersistentTopActionCounts();
+      dispatchLiveDataEvent("likes");
       if (addedCount > 0 && pageName !== "liked-you") {
         const latestLike = inboundLikes[inboundLikes.length - 1];
         const sender = getToastProfileContent(latestLike?.from);
@@ -486,6 +491,30 @@ const startFirebaseLiveSubscriptions = (authEmail) => {
           initial: sender.initial
         });
       }
+    })
+  );
+
+  register(
+    services.db.collection("chatThreads").where("a", "==", authEmail).onSnapshot((snapshot) => {
+      const threadsA = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
+      const existingOthers = REMOTE_DATA_CACHE.chatThreads.filter(
+        (entry) => normalizeEmail(entry?.a) !== authEmail
+      );
+      REMOTE_DATA_CACHE.chatThreads = [...existingOthers, ...threadsA];
+      dispatchLiveDataEvent("chatThreads");
+    })
+  );
+
+  register(
+    services.db.collection("chatThreads").where("b", "==", authEmail).onSnapshot((snapshot) => {
+      const threadsB = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
+      const merged = new Map();
+      REMOTE_DATA_CACHE.chatThreads
+        .filter((entry) => normalizeEmail(entry?.b) !== authEmail)
+        .forEach((entry) => merged.set(entry.id, entry));
+      threadsB.forEach((entry) => merged.set(entry.id, entry));
+      REMOTE_DATA_CACHE.chatThreads = Array.from(merged.values());
+      dispatchLiveDataEvent("chatThreads");
     })
   );
 
@@ -511,6 +540,7 @@ const startFirebaseLiveSubscriptions = (authEmail) => {
       }
 
       syncPersistentTopActionCounts();
+      dispatchLiveDataEvent("chatMessages");
       if (addedMessages.length > 0 && pageName !== "chats") {
         const latestMessage = addedMessages[addedMessages.length - 1];
         const sender = getToastProfileContent(latestMessage?.from);
@@ -2714,13 +2744,23 @@ if (chatsApp) {
       }
     }
 
-    const inboundCount = messages.filter((entry) => entry.to === currentUserEmail).length;
-    const seenMap = readMessageSeen();
-    seenMap[currentUserEmail] = inboundCount;
-    writeMessageSeen(seenMap);
-    if (messagesBadge) {
-      setBadgeCount("[data-messages-badge]", 0);
-    }
+    const refreshChatData = () => {
+      threads = readLocalChatThreads();
+      messages = readLocalChatMessages();
+    };
+
+    const markChatMessagesSeen = () => {
+      refreshChatData();
+      const inboundCount = messages.filter((entry) => entry.to === currentUserEmail).length;
+      const seenMap = readMessageSeen();
+      seenMap[currentUserEmail] = inboundCount;
+      writeMessageSeen(seenMap);
+      if (messagesBadge) {
+        setBadgeCount("[data-messages-badge]", 0);
+      }
+    };
+
+    markChatMessagesSeen();
 
     const getThreadOther = (thread) =>
       thread.a === currentUserEmail ? thread.b : thread.a;
@@ -2761,6 +2801,7 @@ if (chatsApp) {
     removeSessionValue(SESSION_PENDING_CHAT_RECIPIENT_NAME_KEY);
 
     const renderMessages = () => {
+      refreshChatData();
       messageList.innerHTML = "";
       const thread = filteredThreads().find((entry) => entry.id === activeThreadId);
       if (!thread) {
@@ -2784,7 +2825,7 @@ if (chatsApp) {
         bubble.className = `chat-bubble ${own ? "own" : "other"}`;
         if (!readable) {
           bubble.classList.add("is-blurred");
-          bubble.textContent = "Upgrade to Gold to read this message.";
+          bubble.textContent = "Upgrade to Premium to read this message.";
         } else {
           bubble.textContent = entry.text || "";
         }
@@ -2794,6 +2835,7 @@ if (chatsApp) {
     };
 
     const renderThreads = () => {
+      refreshChatData();
       const list = filteredThreads();
       threadList.innerHTML = "";
       if (!list.length) {
@@ -2831,6 +2873,21 @@ if (chatsApp) {
         threadList.appendChild(button);
       });
     };
+
+    const handleLiveChatUpdate = (event) => {
+      const type = event?.detail?.type || "";
+      if (!["chatMessages", "chatThreads"].includes(type)) {
+        return;
+      }
+      refreshChatData();
+      markChatMessagesSeen();
+      if (activeThreadId && !filteredThreads().some((entry) => entry.id === activeThreadId)) {
+        activeThreadId = filteredThreads()[0]?.id || null;
+      }
+      renderThreads();
+      renderMessages();
+    };
+    window.addEventListener("appdata:live-update", handleLiveChatUpdate);
 
     composeForm.addEventListener("submit", async (event) => {
       event.preventDefault();
