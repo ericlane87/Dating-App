@@ -47,30 +47,6 @@ const clearStoredSession = () => {
   removeSessionValue(SESSION_PENDING_CHAT_RECIPIENT_NAME_KEY);
 };
 
-const getCurrentUserMenuAvatarMarkup = () => {
-  const currentUserEmail = getCurrentUserEmail();
-  const fallbackMarkup = `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M12 12.2a4.35 4.35 0 1 0-4.35-4.35A4.35 4.35 0 0 0 12 12.2zm0 2.05c-3.78 0-7 1.95-7 4.25V20h14v-1.5c0-2.3-3.22-4.25-7-4.25z"
-      />
-    </svg>
-  `;
-  if (!currentUserEmail) {
-    return fallbackMarkup;
-  }
-  const profiles = readLocalProfiles();
-  const profile = profiles[currentUserEmail] || {};
-  const photos = Array.isArray(profile.photos) ? profile.photos : [];
-  const primaryIndex = Number.isInteger(profile.primaryPhotoIndex)
-    ? profile.primaryPhotoIndex
-    : 0;
-  const photoSrc = photos[primaryIndex] || photos[0] || "";
-  return photoSrc
-    ? `<img src="${photoSrc}" alt="" loading="lazy" />`
-    : fallbackMarkup;
-};
-
 const buildPersistentTopActionsMarkup = () => {
   const currentUserEmail = getCurrentUserEmail();
   const currentUserName = getCurrentUserName();
@@ -120,7 +96,7 @@ const buildPersistentTopActionsMarkup = () => {
         `
       : "";
   const upgradeControl =
-    pageName === "dashboard" && currentUserEmail && !hasPaidMembership(currentUserEmail)
+    pageName === "dashboard" && currentUserEmail
       ? `
           <button
             type="button"
@@ -158,7 +134,11 @@ const buildPersistentTopActionsMarkup = () => {
           aria-label="Open account menu for ${profileLabel}"
           title="${profileLabel}"
         >
-          ${getCurrentUserMenuAvatarMarkup()}
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 12.2a4.35 4.35 0 1 0-4.35-4.35A4.35 4.35 0 0 0 12 12.2zm0 2.05c-3.78 0-7 1.95-7 4.25V20h14v-1.5c0-2.3-3.22-4.25-7-4.25z"
+            />
+          </svg>
         </button>
         <div id="profile-menu-dropdown" class="profile-menu-dropdown" data-profile-menu hidden>
           ${profileMenuLinks}
@@ -202,7 +182,6 @@ const syncActiveNavLinks = () => {
 const rerenderPersistentTopActions = () => {
   ensurePersistentTopActions();
   syncActiveNavLinks();
-  syncUpgradeButtonVisibility();
 };
 
 const setBadgeCount = (selector, count) => {
