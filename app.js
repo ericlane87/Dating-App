@@ -6,12 +6,45 @@ const normalizeEmailInput = (value) =>
     .replace(/[\u00a0\u1680\u180e\u2000-\u200d\u2028\u2029\u202f\u205f\u3000\ufeff]/g, "")
     .trim()
     .toLowerCase();
+const SESSION_USER_EMAIL_KEY = "currentUserEmail";
+const SESSION_USER_NAME_KEY = "currentUserName";
+const SESSION_HAS_PROFILE_KEY = "hasProfile";
+const SESSION_PENDING_CHAT_RECIPIENT_KEY = "pendingChatRecipientKey";
+const SESSION_PENDING_CHAT_RECIPIENT_NAME_KEY = "pendingChatRecipientName";
+const getSessionValue = (key) => {
+  try {
+    return sessionStorage.getItem(key) || "";
+  } catch (error) {
+    return "";
+  }
+};
+const setSessionValue = (key, value) => {
+  try {
+    sessionStorage.setItem(key, String(value || ""));
+  } catch (error) {
+    // Ignore storage errors and let auth state be the fallback source of truth.
+  }
+};
+const removeSessionValue = (key) => {
+  try {
+    sessionStorage.removeItem(key);
+  } catch (error) {
+    // Ignore storage errors.
+  }
+};
 const getCurrentUserEmail = () =>
-  normalizeEmailInput(localStorage.getItem("currentUserEmail"));
-const getCurrentUserName = () => (localStorage.getItem("currentUserName") || "").trim();
+  normalizeEmailInput(getSessionValue(SESSION_USER_EMAIL_KEY));
+const getCurrentUserName = () => getSessionValue(SESSION_USER_NAME_KEY).trim();
+const setCurrentUserSession = (email, name) => {
+  setSessionValue(SESSION_USER_EMAIL_KEY, normalizeEmailInput(email));
+  setSessionValue(SESSION_USER_NAME_KEY, String(name || "").trim());
+};
 const clearStoredSession = () => {
-  localStorage.removeItem("currentUserEmail");
-  localStorage.removeItem("currentUserName");
+  removeSessionValue(SESSION_USER_EMAIL_KEY);
+  removeSessionValue(SESSION_USER_NAME_KEY);
+  removeSessionValue(SESSION_HAS_PROFILE_KEY);
+  removeSessionValue(SESSION_PENDING_CHAT_RECIPIENT_KEY);
+  removeSessionValue(SESSION_PENDING_CHAT_RECIPIENT_NAME_KEY);
 };
 
 const buildPersistentTopActionsMarkup = () => {
@@ -250,6 +283,22 @@ const getFirebaseServices = () => {
   return window.firebaseServices;
 };
 
+let firebaseSessionPersistencePromise = null;
+const ensureFirebaseSessionPersistence = async () => {
+  const services = getFirebaseServices();
+  const persistence = window.firebase?.auth?.Auth?.Persistence?.SESSION;
+  if (!services?.auth || !persistence) {
+    return;
+  }
+  if (!firebaseSessionPersistencePromise) {
+    firebaseSessionPersistencePromise = services.auth.setPersistence(persistence).catch((error) => {
+      firebaseSessionPersistencePromise = null;
+      throw error;
+    });
+  }
+  await firebaseSessionPersistencePromise;
+};
+
 const REMOTE_DATA_CACHE = {
   loaded: false,
   users: [],
@@ -299,6 +348,7 @@ const loadFirebaseAppData = async () => {
     REMOTE_DATA_CACHE.loaded = true;
     return;
   }
+  await ensureFirebaseSessionPersistence();
   const authUser = await new Promise((resolve) => {
     let unsubscribe = () => {};
     unsubscribe = services.auth.onAuthStateChanged((user) => {
@@ -312,8 +362,7 @@ const loadFirebaseAppData = async () => {
     REMOTE_DATA_CACHE.loaded = true;
     return;
   }
-  localStorage.setItem("currentUserEmail", authUser.email || "");
-  localStorage.setItem("currentUserName", authUser.displayName || "");
+  setCurrentUserSession(authUser.email || "", authUser.displayName || "");
   rerenderPersistentTopActions();
 
   const authEmail = normalizeEmail(authUser.email);
@@ -1170,6 +1219,7 @@ if (signupForm) {
       const lastName = lastNameField.value.trim();
       const phone = phoneField.value.trim();
       const email = normalizeEmailInput(emailField.value);
+      await ensureFirebaseSessionPersistence();
 
       const credential = await services.auth.createUserWithEmailAndPassword(
         email,
@@ -1229,6 +1279,7 @@ if (signinForm) {
       const services = getFirebaseServices();
       if (services) {
         try {
+          await ensureFirebaseSessionPersistence();
           const credential = await services.auth.signInWithEmailAndPassword(
             email,
             passwordField.value
@@ -1236,14 +1287,13 @@ if (signinForm) {
 
           if (credential.user) {
             await saveFirebaseUserDocument(services, credential.user);
-            localStorage.setItem("currentUserEmail", credential.user.email || "");
-            localStorage.setItem(
-              "currentUserName",
+            setCurrentUserSession(
+              credential.user.email || "",
               credential.user.displayName || ""
             );
           }
 
-          let hasProfile = localStorage.getItem("hasProfile") === "true";
+          let hasProfile = getSessionValue(SESSION_HAS_PROFILE_KEY) === "true";
           if (services.db && credential.user?.email) {
             const profileDoc = await services.db
               .collection("profiles")
@@ -1272,14 +1322,13 @@ if (signinForm) {
         note.classList.add("form-error");
         return;
       }
-      localStorage.setItem("currentUserEmail", localUser.email || "");
-      localStorage.setItem(
-        "currentUserName",
+      setCurrentUserSession(
+        localUser.email || "",
         `${localUser.firstName || ""} ${localUser.lastName || ""}`.trim()
       );
       const profiles = readLocalProfiles();
       const hasProfile =
-        Boolean(profiles[email]) || localStorage.getItem("hasProfile") === "true";
+        Boolean(profiles[email]) || getSessionValue(SESSION_HAS_PROFILE_KEY) === "true";
       window.location.href = hasProfile
         ? "dashboard.html"
         : "create-profile.html";
@@ -1383,9 +1432,7 @@ if (createProfileForm) {
   const heightError = createProfileForm.querySelector("[data-height-error]");
   const languageSelections = new Map();
   const lookingForSelections = new Map();
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
-    .trim()
-    .toLowerCase();
+  const currentUserEmail = getCurrentUserEmail();
   const locationField = createProfileForm.querySelector("[data-location-field]");
   const locationRequestButton = createProfileForm.querySelector("[data-location-request]");
   const locationSuggestions = createProfileForm.querySelector("[data-location-suggestions]");
@@ -2079,7 +2126,7 @@ if (createProfileForm) {
       createProfileExistingPhotos = photos.slice();
       createProfileExistingPrimaryIndex = primaryPhotoIndex;
     }
-    localStorage.setItem("hasProfile", "true");
+    setSessionValue(SESSION_HAS_PROFILE_KEY, "true");
     window.location.href = "membership.html?onboarding=1";
   });
 }
@@ -2098,9 +2145,7 @@ if (dashboardGrid) {
   const filterApply = document.querySelector("[data-filter-apply]");
   const filterReset = document.querySelector("[data-filter-reset]");
   const filterClose = document.querySelector("[data-filter-close]");
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
-    .trim()
-    .toLowerCase();
+  const currentUserEmail = getCurrentUserEmail();
   if (!currentUserEmail) {
     window.location.href = "signin.html";
   }
@@ -2331,9 +2376,7 @@ if (likedGrid) {
   const likesBadge = document.querySelector("[data-likes-badge]");
   const localProfiles = readLocalProfiles();
   const localLikes = readLocalLikes();
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
-    .trim()
-    .toLowerCase();
+  const currentUserEmail = getCurrentUserEmail();
   const receivedLikes = currentUserEmail
     ? localLikes.filter((entry) => entry.to === currentUserEmail)
     : [];
@@ -2419,9 +2462,7 @@ if (chatsApp) {
   const composeInput = document.querySelector("[data-chat-compose-input]");
   const messagesBadge = document.querySelector("[data-messages-badge]");
   const likesBadge = document.querySelector("[data-likes-badge]");
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
-    .trim()
-    .toLowerCase();
+  const currentUserEmail = getCurrentUserEmail();
   const profiles = readLocalProfiles();
   const likes = readLocalLikes();
 
@@ -2448,9 +2489,9 @@ if (chatsApp) {
     let threads = readLocalChatThreads();
     let messages = readLocalChatMessages();
     const currentPlan = getMembershipPlan(currentUserEmail);
-    const pendingRecipient = (localStorage.getItem("pendingChatRecipientKey") || "")
-      .trim()
-      .toLowerCase();
+    const pendingRecipient = normalizeEmailInput(
+      getSessionValue(SESSION_PENDING_CHAT_RECIPIENT_KEY)
+    );
     const panelHead = document.querySelector(".chat-panel-head");
     if (panelHead && !panelHead.querySelector("[data-membership-read-note]")) {
       const note = document.createElement("p");
@@ -2525,8 +2566,8 @@ if (chatsApp) {
     if (!activeThreadId && currentThreads.length) {
       activeThreadId = currentThreads[0].id;
     }
-    localStorage.removeItem("pendingChatRecipientKey");
-    localStorage.removeItem("pendingChatRecipientName");
+    removeSessionValue(SESSION_PENDING_CHAT_RECIPIENT_KEY);
+    removeSessionValue(SESSION_PENDING_CHAT_RECIPIENT_NAME_KEY);
 
     const renderMessages = () => {
       messageList.innerHTML = "";
@@ -2827,9 +2868,7 @@ if (profileDetailRoot) {
 
     if (messageModalSend && messageModalText) {
       messageModalSend.addEventListener("click", async () => {
-        const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
-          .trim()
-          .toLowerCase();
+        const currentUserEmail = getCurrentUserEmail();
         const text = messageModalText.value.trim();
 
         if (!currentUserEmail) {
@@ -2877,8 +2916,8 @@ if (profileDetailRoot) {
         });
         await writeLocalChatMessages(messages);
 
-        localStorage.setItem("pendingChatRecipientKey", key);
-        localStorage.setItem("pendingChatRecipientName", display(record.profileName));
+        setSessionValue(SESSION_PENDING_CHAT_RECIPIENT_KEY, key);
+        setSessionValue(SESSION_PENDING_CHAT_RECIPIENT_NAME_KEY, display(record.profileName));
         closeMessageModal();
         window.location.href = "chats.html";
       });
@@ -2890,9 +2929,7 @@ if (profileDetailRoot) {
       }
     });
     if (likeProfileButton && likeProfileNote) {
-      const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
-        .trim()
-        .toLowerCase();
+      const currentUserEmail = getCurrentUserEmail();
       const isOwnProfile = currentUserEmail && currentUserEmail === key;
       const likes = readLocalLikes();
       const alreadyLiked = likes.some(
