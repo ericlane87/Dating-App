@@ -4,6 +4,10 @@ const pageName = document.body?.dataset?.page;
 const getCurrentUserEmail = () =>
   (localStorage.getItem("currentUserEmail") || "").trim().toLowerCase();
 const getCurrentUserName = () => (localStorage.getItem("currentUserName") || "").trim();
+const clearStoredSession = () => {
+  localStorage.removeItem("currentUserEmail");
+  localStorage.removeItem("currentUserName");
+};
 
 const buildPersistentTopActionsMarkup = () => {
   const currentUserEmail = getCurrentUserEmail();
@@ -132,6 +136,21 @@ const ensurePersistentTopActions = () => {
   }
 };
 
+const syncActiveNavLinks = () => {
+  if (!pageName) {
+    return;
+  }
+  const navLinks = document.querySelectorAll("[data-nav]");
+  navLinks.forEach((link) => {
+    link.classList.toggle("active", link.getAttribute("data-nav") === pageName);
+  });
+};
+
+const rerenderPersistentTopActions = () => {
+  ensurePersistentTopActions();
+  syncActiveNavLinks();
+};
+
 const setBadgeCount = (selector, count) => {
   document.querySelectorAll(selector).forEach((badge) => {
     badge.textContent = String(count);
@@ -153,63 +172,41 @@ const syncUpgradeButtonVisibility = () => {
   });
 };
 
-ensurePersistentTopActions();
+rerenderPersistentTopActions();
 
-if (pageName) {
-  const navLinks = document.querySelectorAll("[data-nav]");
-  navLinks.forEach((link) => {
-    if (link.getAttribute("data-nav") === pageName) {
-      link.classList.add("active");
-    }
-  });
-}
+const setProfileMenuOpen = (open) => {
+  const profileMenuToggle = document.querySelector("[data-profile-menu-toggle]");
+  const profileMenu = document.querySelector("[data-profile-menu]");
+  if (!profileMenuToggle || !profileMenu) {
+    return;
+  }
+  profileMenu.hidden = !open;
+  profileMenuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+};
 
-const profileMenuToggle = document.querySelector("[data-profile-menu-toggle]");
-const profileMenu = document.querySelector("[data-profile-menu]");
-if (profileMenuToggle && profileMenu) {
-  const setMenuOpen = (open) => {
-    profileMenu.hidden = !open;
-    profileMenuToggle.setAttribute("aria-expanded", open ? "true" : "false");
-  };
-
-  profileMenuToggle.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
+  const profileMenuToggle = event.target.closest("[data-profile-menu-toggle]");
+  if (profileMenuToggle) {
     event.stopPropagation();
     const isOpen = profileMenuToggle.getAttribute("aria-expanded") === "true";
-    setMenuOpen(!isOpen);
-  });
+    setProfileMenuOpen(!isOpen);
+    return;
+  }
 
-  document.addEventListener("click", (event) => {
-    if (
-      !profileMenu.hidden &&
-      !profileMenu.contains(event.target) &&
-      !profileMenuToggle.contains(event.target)
-    ) {
-      setMenuOpen(false);
-    }
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      setMenuOpen(false);
-    }
-  });
-}
-
-const logoutButton = document.querySelector("[data-logout-button]");
-if (logoutButton) {
-  logoutButton.addEventListener("click", async () => {
+  const logoutButton = event.target.closest("[data-logout-button]");
+  if (logoutButton) {
     const services = getFirebaseServices();
-    if (services?.auth) {
+    if (services?.auth?.currentUser) {
       await services.auth.signOut();
     }
-    localStorage.removeItem("currentUserEmail");
-    localStorage.removeItem("currentUserName");
+    clearStoredSession();
+    rerenderPersistentTopActions();
     window.location.href = "signin.html";
-  });
-}
+    return;
+  }
 
-document.querySelectorAll("[data-upgrade-button]").forEach((button) => {
-  button.addEventListener("click", () => {
+  const upgradeButton = event.target.closest("[data-upgrade-button]");
+  if (upgradeButton) {
     const currentUserEmail = getCurrentUserEmail();
     if (!currentUserEmail) {
       window.location.href = "signin.html";
@@ -219,7 +216,26 @@ document.querySelectorAll("[data-upgrade-button]").forEach((button) => {
     syncPersistentTopActionCounts();
     renderMembershipAd();
     hideUpgradeButtons();
-  });
+    return;
+  }
+
+  const profileMenu = document.querySelector("[data-profile-menu]");
+  const activeToggle = document.querySelector("[data-profile-menu-toggle]");
+  if (
+    profileMenu &&
+    activeToggle &&
+    !profileMenu.hidden &&
+    !profileMenu.contains(event.target) &&
+    !activeToggle.contains(event.target)
+  ) {
+    setProfileMenuOpen(false);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    setProfileMenuOpen(false);
+  }
 });
 
 const getFirebaseServices = () => {
@@ -277,11 +293,14 @@ const loadFirebaseAppData = async () => {
     });
   });
   if (!authUser) {
+    clearStoredSession();
+    rerenderPersistentTopActions();
     REMOTE_DATA_CACHE.loaded = true;
     return;
   }
   localStorage.setItem("currentUserEmail", authUser.email || "");
   localStorage.setItem("currentUserName", authUser.displayName || "");
+  rerenderPersistentTopActions();
 
   const authEmail = normalizeEmail(authUser.email);
   const encodedAuthEmail = toFirestoreId(authEmail);
