@@ -14,6 +14,10 @@ service cloud.firestore {
       return signedIn() && email is string && email == userEmail();
     }
 
+    function ownDocOrMissing(path) {
+      return !exists(path) || ownsEmail(get(path).data.email);
+    }
+
     function isParticipant(data) {
       return signedIn()
         && (data.a == userEmail() || data.b == userEmail());
@@ -60,17 +64,20 @@ service cloud.firestore {
     }
 
     match /likeSeen/{userId} {
-      allow read: if ownsEmail(resource.data.email);
+      allow read: if signedIn()
+        && ownDocOrMissing(/databases/$(database)/documents/likeSeen/$(userId));
       allow create, update, delete: if ownsEmail(request.resource.data.email);
     }
 
     match /messageSeen/{userId} {
-      allow read: if ownsEmail(resource.data.email);
+      allow read: if signedIn()
+        && ownDocOrMissing(/databases/$(database)/documents/messageSeen/$(userId));
       allow create, update, delete: if ownsEmail(request.resource.data.email);
     }
 
     match /dashboardFilters/{userId} {
-      allow read: if ownsEmail(resource.data.email);
+      allow read: if signedIn()
+        && ownDocOrMissing(/databases/$(database)/documents/dashboardFilters/$(userId));
       allow create, update, delete: if ownsEmail(request.resource.data.email);
     }
   }
