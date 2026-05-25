@@ -279,6 +279,15 @@ const readCollectionDocs = async (db, collectionName, keyMapper = (doc) => doc.i
   return output;
 };
 
+const safeFirestoreGet = async (promise, fallback, label) => {
+  try {
+    return await promise;
+  } catch (error) {
+    console.warn(`Skipping Firebase read for ${label}.`, error);
+    return fallback;
+  }
+};
+
 const loadFirebaseAppData = async () => {
   const services = getFirebaseServices();
   if (!services?.db) {
@@ -318,18 +327,66 @@ const loadFirebaseAppData = async () => {
     dashboardFiltersDoc,
     memberships
   ] = await Promise.all([
-    services.db.collection("users").get(),
-    readCollectionDocs(services.db, "profiles", (doc) => fromFirestoreId(doc.id)),
-    services.db.collection("likes").where("from", "==", authEmail).get(),
-    services.db.collection("likes").where("to", "==", authEmail).get(),
-    services.db.collection("chatThreads").where("a", "==", authEmail).get(),
-    services.db.collection("chatThreads").where("b", "==", authEmail).get(),
-    services.db.collection("chatMessages").where("from", "==", authEmail).get(),
-    services.db.collection("chatMessages").where("to", "==", authEmail).get(),
-    services.db.collection("likeSeen").doc(encodedAuthEmail).get(),
-    services.db.collection("messageSeen").doc(encodedAuthEmail).get(),
-    services.db.collection("dashboardFilters").doc(encodedAuthEmail).get(),
-    readCollectionDocs(services.db, "memberships", (doc) => fromFirestoreId(doc.id))
+    safeFirestoreGet(
+      services.db.collection("users").get(),
+      { forEach: () => {} },
+      "users"
+    ),
+    safeFirestoreGet(
+      readCollectionDocs(services.db, "profiles", (doc) => fromFirestoreId(doc.id)),
+      {},
+      "profiles"
+    ),
+    safeFirestoreGet(
+      services.db.collection("likes").where("from", "==", authEmail).get(),
+      { forEach: () => {} },
+      "likes-from"
+    ),
+    safeFirestoreGet(
+      services.db.collection("likes").where("to", "==", authEmail).get(),
+      { forEach: () => {} },
+      "likes-to"
+    ),
+    safeFirestoreGet(
+      services.db.collection("chatThreads").where("a", "==", authEmail).get(),
+      { forEach: () => {} },
+      "chatThreads-a"
+    ),
+    safeFirestoreGet(
+      services.db.collection("chatThreads").where("b", "==", authEmail).get(),
+      { forEach: () => {} },
+      "chatThreads-b"
+    ),
+    safeFirestoreGet(
+      services.db.collection("chatMessages").where("from", "==", authEmail).get(),
+      { forEach: () => {} },
+      "chatMessages-from"
+    ),
+    safeFirestoreGet(
+      services.db.collection("chatMessages").where("to", "==", authEmail).get(),
+      { forEach: () => {} },
+      "chatMessages-to"
+    ),
+    safeFirestoreGet(
+      services.db.collection("likeSeen").doc(encodedAuthEmail).get(),
+      { exists: false, data: () => ({}) },
+      "likeSeen"
+    ),
+    safeFirestoreGet(
+      services.db.collection("messageSeen").doc(encodedAuthEmail).get(),
+      { exists: false, data: () => ({}) },
+      "messageSeen"
+    ),
+    safeFirestoreGet(
+      services.db.collection("dashboardFilters").doc(encodedAuthEmail).get(),
+      { exists: false, data: () => ({}) },
+      "dashboardFilters"
+    ),
+    safeFirestoreGet(
+      readCollectionDocs(services.db, "memberships", (doc) => fromFirestoreId(doc.id)),
+      {},
+      "memberships"
+    )
   ]);
 
   REMOTE_DATA_CACHE.users = [];
