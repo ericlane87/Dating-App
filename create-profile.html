@@ -45,10 +45,20 @@
             id="profile-location"
             name="location"
             data-location-field
+            placeholder="Share your location to fill in your city"
             readonly
             required
           />
-          <p class="form-note">Auto-filled from your device.</p>
+          <button
+            type="button"
+            class="button ghost"
+            data-location-request
+          >
+            Share my city
+          </button>
+          <p class="form-note" data-location-note>
+            Allow location access to auto-fill your city. You cannot edit this field manually.
+          </p>
         </div>
         <div class="form-row">
           <label for="profile-bio">Bio</label>

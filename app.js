@@ -1296,6 +1296,17 @@ if (createProfileForm) {
   const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
+  const locationField = createProfileForm.querySelector("[data-location-field]");
+  const locationRequestButton = createProfileForm.querySelector("[data-location-request]");
+  const locationRow = locationField?.closest(".form-row") || null;
+  const locationNote =
+    createProfileForm.querySelector("[data-location-note]") ||
+    locationRow?.querySelector(".form-note") ||
+    null;
+  const locationState = {
+    hasPermission: false,
+    requestInFlight: false
+  };
   const allProfiles = readLocalProfiles();
   const existingProfile =
     currentUserEmail && allProfiles[currentUserEmail]
@@ -1308,6 +1319,117 @@ if (createProfileForm) {
     }
     const option = Array.from(select.options).find((entry) => entry.value === value);
     return option ? option.text : value;
+  };
+
+  const setLocationAttention = (active) => {
+    if (!locationRow) {
+      return;
+    }
+    locationRow.classList.toggle("is-attention", active);
+  };
+
+  const setLocationNote = (message, isError = false) => {
+    if (!locationNote) {
+      return;
+    }
+    locationNote.textContent = message;
+    locationNote.classList.toggle("form-error", isError);
+  };
+
+  const focusLocationRequirements = () => {
+    if (!locationRow) {
+      return;
+    }
+    setLocationAttention(true);
+    locationRow.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (locationRequestButton) {
+      locationRequestButton.focus();
+    } else if (locationField) {
+      locationField.focus();
+    }
+    window.setTimeout(() => {
+      setLocationAttention(false);
+    }, 2200);
+  };
+
+  const applyResolvedCity = (city) => {
+    if (!locationField) {
+      return;
+    }
+    locationField.value = String(city || "").trim();
+    locationState.hasPermission = Boolean(locationField.value);
+    if (locationState.hasPermission) {
+      setLocationAttention(false);
+      setLocationNote("City shared from your device.", false);
+    }
+  };
+
+  const fetchCityFromCoordinates = async (latitude, longitude) => {
+    const endpoint =
+      "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
+      encodeURIComponent(latitude) +
+      "&lon=" +
+      encodeURIComponent(longitude);
+    const response = await fetch(endpoint);
+    if (!response.ok) {
+      throw new Error("Reverse geocoding failed");
+    }
+    const data = await response.json();
+    const address = data && data.address ? data.address : {};
+    const city =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.suburb ||
+      address.county;
+    if (!city) {
+      throw new Error("City not found");
+    }
+    return city;
+  };
+
+  const requestLocationPermission = async (reason = "button") => {
+    if (!locationField || !("geolocation" in navigator) || locationState.requestInFlight) {
+      return locationState.hasPermission;
+    }
+
+    locationState.requestInFlight = true;
+    if (locationRequestButton) {
+      locationRequestButton.disabled = true;
+    }
+    setLocationNote("Allow location access so we can collect your city.", false);
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 0
+        });
+      });
+      const city = await fetchCityFromCoordinates(
+        position.coords.latitude,
+        position.coords.longitude
+      );
+      applyResolvedCity(city);
+      return true;
+    } catch (error) {
+      locationState.hasPermission = false;
+      locationField.value = "";
+      setLocationAttention(true);
+      setLocationNote(
+        reason === "submit"
+          ? "Share your city to save your profile. If you dismissed the browser prompt, it has been requested again."
+          : "Location access is required to save your profile. Please allow your browser to share your city.",
+        true
+      );
+      return false;
+    } finally {
+      locationState.requestInFlight = false;
+      if (locationRequestButton) {
+        locationRequestButton.disabled = false;
+      }
+    }
   };
 
   const renderLanguageSelections = () => {
@@ -1452,6 +1574,9 @@ if (createProfileForm) {
       if (value === undefined || value === null) {
         return;
       }
+      if (fieldName === "location") {
+        return;
+      }
       field.value = String(value);
     });
 
@@ -1483,6 +1608,53 @@ if (createProfileForm) {
     createProfileExistingPrimaryIndex = 0;
   }
 
+  if (locationField) {
+    locationField.readOnly = true;
+    locationField.setAttribute("aria-readonly", "true");
+    locationField.value = "";
+  }
+
+  if (locationRequestButton) {
+    locationRequestButton.addEventListener("click", async () => {
+      await requestLocationPermission("button");
+    });
+  }
+
+  if (!("geolocation" in navigator)) {
+    setLocationNote(
+      "This browser does not support location sharing. Use a supported browser to finish your profile.",
+      true
+    );
+    if (locationRequestButton) {
+      locationRequestButton.disabled = true;
+    }
+  } else {
+    setLocationNote(
+      "Allow location access to auto-fill your city. You cannot edit this field manually.",
+      false
+    );
+    if (navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: "geolocation" })
+        .then((status) => {
+          if (status.state === "granted") {
+            requestLocationPermission("button").catch(() => {});
+          }
+          status.onchange = () => {
+            if (status.state === "granted") {
+              requestLocationPermission("button").catch(() => {});
+              return;
+            }
+            locationState.hasPermission = false;
+            if (locationField) {
+              locationField.value = "";
+            }
+          };
+        })
+        .catch(() => {});
+    }
+  }
+
   createProfileForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const hasLanguage = languageSelections.size > 0;
@@ -1504,6 +1676,13 @@ if (createProfileForm) {
         lookingForError.hidden = false;
       }
       return;
+    }
+    if (!locationState.hasPermission || !locationField?.value.trim()) {
+      focusLocationRequirements();
+      await requestLocationPermission("submit");
+      if (!locationState.hasPermission || !locationField?.value.trim()) {
+        return;
+      }
     }
 
     const fileInput = createProfileForm.querySelector(
@@ -2415,84 +2594,6 @@ if (profileDetailRoot) {
 }
 
 });
-
-const locationField = document.querySelector("[data-location-field]");
-if (locationField && "geolocation" in navigator) {
-  const locationNote = locationField
-    .closest(".form-row")
-    ?.querySelector(".form-note");
-  if (locationNote) {
-    locationNote.textContent = "Detecting your location...";
-  }
-
-  const enableManualLocationEntry = (message) => {
-    locationField.readOnly = false;
-    locationField.placeholder = "Enter your city";
-    if (locationNote) {
-      locationNote.textContent = message;
-      locationNote.classList.add("form-error");
-    }
-  };
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      if (locationField.value) {
-        return;
-      }
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
-      const endpoint =
-        "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
-        encodeURIComponent(latitude) +
-        "&lon=" +
-        encodeURIComponent(longitude);
-
-      fetch(endpoint)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Reverse geocoding failed");
-          }
-          return response.json();
-        })
-        .then((data) => {
-          const address = data && data.address ? data.address : {};
-          const city =
-            address.city ||
-            address.town ||
-            address.village ||
-            address.suburb ||
-            address.county;
-          if (city) {
-            locationField.value = city;
-            if (locationNote) {
-              locationNote.textContent = "Location auto-filled from your device.";
-              locationNote.classList.remove("form-error");
-            }
-            return;
-          }
-          locationField.value =
-            data && data.display_name ? data.display_name : "Unknown location";
-          if (locationNote) {
-            locationNote.textContent = "Location auto-filled from your device.";
-            locationNote.classList.remove("form-error");
-          }
-        })
-        .catch(() => {
-          enableManualLocationEntry(
-            "Could not detect your city automatically. Enter location manually."
-          );
-        });
-    },
-    () => {
-      enableManualLocationEntry(
-        "Location permission denied. Enter your location manually."
-      );
-    }
-  );
-} else if (locationField) {
-  locationField.readOnly = false;
-  locationField.placeholder = "Enter your city";
-}
 
 const photoInput = document.querySelector("[data-profile-photo-input]");
 const photoPreviews = document.querySelector("[data-photo-previews]");

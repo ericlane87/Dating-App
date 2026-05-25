@@ -615,6 +615,13 @@ a.filter-toggle {
   gap: 6px;
 }
 
+.form-row.is-attention {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 45, 45, 0.08);
+  box-shadow: 0 0 0 2px rgba(255, 45, 45, 0.45);
+}
+
 .form-row.is-hidden,
 [data-other-tribe-row][hidden] {
   display: none !important;
