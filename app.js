@@ -1219,6 +1219,11 @@ const getProfilePhotoSources = async (files, userEmail) => {
   try {
     return await Promise.all(files.map((file) => uploadProfilePhoto(file, userEmail)));
   } catch (error) {
+    if (isFirebaseDataEnabled()) {
+      throw new Error(
+        "Photo upload is unavailable right now. Please try again in a moment with the same photos."
+      );
+    }
     console.warn("Bunny upload unavailable; falling back to temporary data URLs.", error);
     return Promise.all(files.map((file) => fileToDataUrl(file)));
   }
@@ -1642,6 +1647,7 @@ if (createProfileForm) {
   const languageSelections = new Map();
   const lookingForSelections = new Map();
   const currentUserEmail = getCurrentUserEmail();
+  const profilePhotoError = createProfileForm.querySelector("[data-profile-photo-error]");
   const locationField = createProfileForm.querySelector("[data-location-field]");
   const locationRequestButton = createProfileForm.querySelector("[data-location-request]");
   const locationSuggestions = createProfileForm.querySelector("[data-location-suggestions]");
@@ -1666,6 +1672,14 @@ if (createProfileForm) {
     currentUserEmail && allProfiles[currentUserEmail]
       ? allProfiles[currentUserEmail]
       : null;
+
+  const setProfilePhotoError = (message = "") => {
+    if (!profilePhotoError) {
+      return;
+    }
+    profilePhotoError.textContent = message;
+    profilePhotoError.hidden = !message;
+  };
 
   const getOptionLabel = (select, value) => {
     if (!select) {
@@ -2245,6 +2259,7 @@ if (createProfileForm) {
 
   createProfileForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    setProfilePhotoError("");
     const hasLanguage = languageSelections.size > 0;
     const hasLookingFor = lookingForSelections.size > 0;
     if (languageError) {
@@ -2292,7 +2307,18 @@ if (createProfileForm) {
       const formData = new FormData(createProfileForm);
       let photos = createProfileExistingPhotos.slice();
       if (files.length) {
-        photos = await getProfilePhotoSources(files, profileKey);
+        try {
+          photos = await getProfilePhotoSources(files, profileKey);
+        } catch (error) {
+          setProfilePhotoError(
+            error instanceof Error
+              ? error.message
+              : "Photo upload failed. Please try again."
+          );
+          fileInput.focus();
+          fileInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
       }
       if (!photos.length) {
         alert("Please add at least one photo.");
