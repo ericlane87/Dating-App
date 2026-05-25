@@ -52,11 +52,13 @@ const buildPersistentTopActionsMarkup = () => {
   const currentUserName = getCurrentUserName();
   const showSignedInTopActions =
     Boolean(currentUserEmail) && !["signin", "signup"].includes(pageName);
+  const dashboardHref = currentUserEmail ? "dashboard.html" : "signin.html";
   const chatsHref = currentUserEmail ? "chats.html" : "signin.html";
   const likesHref = currentUserEmail ? "liked-you.html" : "signin.html";
   const dashboardOnlyActions =
     showSignedInTopActions
       ? `
+          <a data-nav="dashboard" href="${dashboardHref}">Dashboard</a>
           <a data-nav="chats" href="${chatsHref}">
             Messages <span class="nav-badge" data-messages-badge hidden>0</span>
           </a>
@@ -155,14 +157,7 @@ const ensurePersistentTopActions = () => {
       nav.className = "nav";
       header.appendChild(nav);
     }
-
-    nav
-      .querySelectorAll(
-        "[data-nav='chats'], [data-nav='liked-you'], [data-filter-toggle], .profile-menu"
-      )
-      .forEach((node) => node.remove());
-
-    nav.insertAdjacentHTML("beforeend", buildPersistentTopActionsMarkup());
+    nav.innerHTML = buildPersistentTopActionsMarkup();
   });
 
   if (!siteHeaders.length && !document.querySelector("[data-floating-top-actions]")) {
