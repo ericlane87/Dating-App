@@ -2710,8 +2710,8 @@ if (chatsApp) {
       note.setAttribute("data-membership-read-note", "");
       note.textContent =
         currentPlan === "free"
-          ? "Your plan includes 5 total incoming message reads."
-          : "Premium includes unlimited reading and priority inbox placement.";
+          ? "Your plan includes 5 total incoming message reads from free members."
+          : "Premium includes unlimited reading, and your messages stay readable to everyone.";
       panelHead.appendChild(note);
     }
 
@@ -2808,32 +2808,38 @@ if (chatsApp) {
         messageList.appendChild(emptyState);
         return;
       }
+      let hasLockedMessages = false;
       threadMessages.forEach((entry) => {
-        const bubble = document.createElement("div");
         const own = entry.from === currentUserEmail;
         const readable = own ? true : canReadInboundMessage(currentUserEmail, entry, messages);
-        bubble.className = `chat-bubble ${own ? "own" : "other"}`;
         if (!readable) {
-          bubble.classList.add("is-blurred");
-          bubble.innerHTML = `
-            <div class="chat-upgrade-lock">
-              <strong>Upgrade to read this message</strong>
-              <button type="button" class="button primary chat-upgrade-button">
-                View plans
-              </button>
-            </div>
-          `;
-          const upgradeButton = bubble.querySelector(".chat-upgrade-button");
-          if (upgradeButton) {
-            upgradeButton.addEventListener("click", () => {
-              window.location.href = "membership.html";
-            });
-          }
-        } else {
-          bubble.textContent = entry.text || "";
+          hasLockedMessages = true;
+          return;
         }
+        const bubble = document.createElement("div");
+        bubble.className = `chat-bubble ${own ? "own" : "other"}`;
+        bubble.textContent = entry.text || "";
         messageList.appendChild(bubble);
       });
+      if (hasLockedMessages) {
+        const lockedCard = document.createElement("div");
+        lockedCard.className = "chat-bubble other is-blurred";
+        lockedCard.innerHTML = `
+          <div class="chat-upgrade-lock">
+            <strong>Upgrade to read locked messages</strong>
+            <button type="button" class="button primary chat-upgrade-button">
+              View plans
+            </button>
+          </div>
+        `;
+        const upgradeButton = lockedCard.querySelector(".chat-upgrade-button");
+        if (upgradeButton) {
+          upgradeButton.addEventListener("click", () => {
+            window.location.href = "membership.html";
+          });
+        }
+        messageList.appendChild(lockedCard);
+      }
       messageList.scrollTop = messageList.scrollHeight;
     };
 
