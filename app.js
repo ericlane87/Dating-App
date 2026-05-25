@@ -2913,15 +2913,34 @@ if (chatsApp) {
       if (chatEmpty) chatEmpty.hidden = true;
       list.forEach((thread) => {
         const otherEmail = getThreadOther(thread);
+        const profile = profiles[otherEmail] || {};
+        const photos = Array.isArray(profile.photos) ? profile.photos : [];
+        const primaryIndex = Number.isInteger(profile.primaryPhotoIndex)
+          ? profile.primaryPhotoIndex
+          : 0;
+        const chosenPhoto = photos[primaryIndex] || photos[0] || "";
         const threadMessages = getThreadMessages(thread.id);
         const last = threadMessages.length ? threadMessages[threadMessages.length - 1].text : "";
+        const row = document.createElement("div");
+        row.className = "chat-thread-item";
+        applyMembershipHighlight(row, otherEmail);
+        if (thread.id === activeThreadId) {
+          row.classList.add("active");
+        }
+        const avatarButton = document.createElement("button");
+        avatarButton.type = "button";
+        avatarButton.className = "chat-thread-avatar";
+        avatarButton.setAttribute("aria-label", `Open ${getDisplayName(otherEmail)} profile`);
+        avatarButton.innerHTML = chosenPhoto
+          ? `<img src="${chosenPhoto}" alt="${getDisplayName(otherEmail)} profile photo" loading="lazy" />`
+          : `<div class="profile-square-fallback">${getDisplayName(otherEmail).trim().charAt(0).toUpperCase() || "?"}</div>`;
+        avatarButton.addEventListener("click", () => {
+          window.location.href = `view-profile.html?user=${encodeURIComponent(otherEmail)}`;
+        });
+
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "chat-thread-item";
-        applyMembershipHighlight(button, otherEmail);
-        if (thread.id === activeThreadId) {
-          button.classList.add("active");
-        }
+        button.className = "chat-thread-main";
         const badgeMarkup = createMembershipBadgeMarkup(otherEmail);
         const priorityLabel = isPriorityPlan(otherEmail)
           ? '<span class="thread-priority-label">Priority</span>'
@@ -2936,7 +2955,9 @@ if (chatsApp) {
           renderThreads();
           renderMessages();
         });
-        threadList.appendChild(button);
+        row.appendChild(avatarButton);
+        row.appendChild(button);
+        threadList.appendChild(row);
       });
     };
 
