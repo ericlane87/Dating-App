@@ -2815,7 +2815,20 @@ if (chatsApp) {
         bubble.className = `chat-bubble ${own ? "own" : "other"}`;
         if (!readable) {
           bubble.classList.add("is-blurred");
-          bubble.textContent = "Upgrade to Premium to read this message.";
+          bubble.innerHTML = `
+            <div class="chat-upgrade-lock">
+              <strong>Upgrade to read this message</strong>
+              <button type="button" class="button primary chat-upgrade-button">
+                View plans
+              </button>
+            </div>
+          `;
+          const upgradeButton = bubble.querySelector(".chat-upgrade-button");
+          if (upgradeButton) {
+            upgradeButton.addEventListener("click", () => {
+              window.location.href = "membership.html";
+            });
+          }
         } else {
           bubble.textContent = entry.text || "";
         }

@@ -1745,9 +1745,26 @@ select option {
 }
 
 .chat-bubble.is-blurred {
-  color: rgba(255, 255, 255, 0.22);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  filter: blur(3px);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(255, 45, 45, 0.12), rgba(255, 45, 45, 0.02)),
+    #111111;
+}
+
+.chat-upgrade-lock {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.chat-upgrade-lock strong {
+  color: var(--text);
+}
+
+.chat-upgrade-button {
+  min-width: 140px;
 }
 
 .membership-read-note {
