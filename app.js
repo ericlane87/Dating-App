@@ -1094,14 +1094,6 @@ const isPriorityPlan = (email) => getMembershipPlan(email) === "premium";
 
 syncUpgradeButtonVisibility();
 
-const getMonthKey = (value) => {
-  const date = new Date(value || Date.now());
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-};
-
 const canReadInboundMessage = (viewerEmail, message, allMessages) => {
   const normalizedEmail = String(viewerEmail || "").trim().toLowerCase();
   if (!normalizedEmail || !message || message.to !== normalizedEmail) {
@@ -1110,20 +1102,18 @@ const canReadInboundMessage = (viewerEmail, message, allMessages) => {
   if (isUnlimitedReadPlan(normalizedEmail)) {
     return true;
   }
-  const targetMonth = getMonthKey(message.at);
-  if (!targetMonth) {
+  if (isPriorityPlan(message.from)) {
     return true;
   }
-  const inboundThisMonth = allMessages
+  const inboundMessages = allMessages
     .filter(
       (entry) =>
         entry &&
-        entry.to === normalizedEmail &&
-        getMonthKey(entry.at) === targetMonth
+        entry.to === normalizedEmail
     )
     .sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
   const visibleIds = new Set(
-    inboundThisMonth.slice(0, MEMBERSHIP_FREE_READ_LIMIT).map((entry) => entry.id)
+    inboundMessages.slice(0, MEMBERSHIP_FREE_READ_LIMIT).map((entry) => entry.id)
   );
   return visibleIds.has(message.id);
 };
@@ -2720,7 +2710,7 @@ if (chatsApp) {
       note.setAttribute("data-membership-read-note", "");
       note.textContent =
         currentPlan === "free"
-          ? "Your plan includes 5 full incoming message reads each month."
+          ? "Your plan includes 5 total incoming message reads."
           : "Premium includes unlimited reading and priority inbox placement.";
       panelHead.appendChild(note);
     }
