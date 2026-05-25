@@ -1196,6 +1196,30 @@ const fileToDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+const MAX_PROFILE_PHOTO_COUNT = 5;
+const MAX_PROFILE_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_PROFILE_PHOTO_TOTAL_BYTES = 20 * 1024 * 1024;
+
+const validateProfilePhotoFiles = (files) => {
+  if (!Array.isArray(files) || !files.length) {
+    return "";
+  }
+  if (files.length > MAX_PROFILE_PHOTO_COUNT) {
+    return `You can select up to ${MAX_PROFILE_PHOTO_COUNT} photos.`;
+  }
+  const oversizedFile = files.find(
+    (file) => file && Number(file.size || 0) > MAX_PROFILE_PHOTO_SIZE_BYTES
+  );
+  if (oversizedFile) {
+    return `Each photo must be 5 MB or smaller. "${oversizedFile.name || "One photo"}" is too large.`;
+  }
+  const totalBytes = files.reduce((sum, file) => sum + Number(file?.size || 0), 0);
+  if (totalBytes > MAX_PROFILE_PHOTO_TOTAL_BYTES) {
+    return "Selected photos are too large together. Keep the total at 20 MB or less.";
+  }
+  return "";
+};
+
 const uploadProfilePhoto = async (file, userEmail) => {
   const formData = new FormData();
   formData.append("photo", file);
@@ -2303,6 +2327,13 @@ if (createProfileForm) {
     const primaryInput = createProfileForm.querySelector("[data-primary-photo]");
     if (fileInput && primaryInput) {
       const files = fileInput.files ? Array.from(fileInput.files) : [];
+      const photoValidationMessage = validateProfilePhotoFiles(files);
+      if (photoValidationMessage) {
+        setProfilePhotoError(photoValidationMessage);
+        fileInput.focus();
+        fileInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
       const profileKey = currentUserEmail || `local-anon-${Date.now()}`;
       const formData = new FormData(createProfileForm);
       let photos = createProfileExistingPhotos.slice();
@@ -3267,6 +3298,14 @@ const photoPreviews = document.querySelector("[data-photo-previews]");
 const primaryPhoto = document.querySelector("[data-primary-photo]");
 whenAppDataReady(() => {
 if (photoInput && photoPreviews && primaryPhoto) {
+  const profilePhotoError = document.querySelector("[data-profile-photo-error]");
+  const setProfilePhotoError = (message = "") => {
+    if (!profilePhotoError) {
+      return;
+    }
+    profilePhotoError.textContent = message;
+    profilePhotoError.hidden = !message;
+  };
   const renderPreviews = (sources, selectedIndex = 0) => {
     photoPreviews.innerHTML = "";
     const safeSelectedIndex =
@@ -3301,8 +3340,9 @@ if (photoInput && photoPreviews && primaryPhoto) {
 
   photoInput.addEventListener("change", () => {
     const files = photoInput.files ? Array.from(photoInput.files) : [];
-    if (files.length > 5) {
-      alert("You can select up to 5 photos.");
+    const photoValidationMessage = validateProfilePhotoFiles(files);
+    if (photoValidationMessage) {
+      setProfilePhotoError(photoValidationMessage);
       photoInput.value = "";
       if (createProfileExistingPhotos.length) {
         renderPreviews(
@@ -3315,6 +3355,7 @@ if (photoInput && photoPreviews && primaryPhoto) {
       }
       return;
     }
+    setProfilePhotoError("");
     if (!files.length) {
       if (createProfileExistingPhotos.length) {
         renderPreviews(
