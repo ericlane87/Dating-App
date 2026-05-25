@@ -1753,6 +1753,17 @@ select option {
     #111111;
 }
 
+.chat-blurred-copy {
+  filter: blur(7px);
+  user-select: none;
+}
+
+.chat-upgrade-card {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
 .chat-upgrade-lock {
   display: grid;
   gap: 10px;

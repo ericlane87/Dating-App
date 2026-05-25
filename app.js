@@ -2814,6 +2814,10 @@ if (chatsApp) {
         const readable = own ? true : canReadInboundMessage(currentUserEmail, entry, messages);
         if (!readable) {
           hasLockedMessages = true;
+          const bubble = document.createElement("div");
+          bubble.className = "chat-bubble other is-blurred";
+          bubble.innerHTML = '<span class="chat-blurred-copy">Upgrade to read this message.</span>';
+          messageList.appendChild(bubble);
           return;
         }
         const bubble = document.createElement("div");
@@ -2823,7 +2827,7 @@ if (chatsApp) {
       });
       if (hasLockedMessages) {
         const lockedCard = document.createElement("div");
-        lockedCard.className = "chat-bubble other is-blurred";
+        lockedCard.className = "chat-bubble other chat-upgrade-card";
         lockedCard.innerHTML = `
           <div class="chat-upgrade-lock">
             <strong>Upgrade to read locked messages</strong>
