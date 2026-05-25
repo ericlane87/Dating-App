@@ -2170,8 +2170,6 @@ if (dashboardGrid) {
     const seenMap = readLikeSeen();
     const seenCount = Number(seenMap[currentUserEmail] || 0);
     if (receivedLikes.length > seenCount) {
-      const newCount = receivedLikes.length - seenCount;
-      alert(`You received ${newCount} new like${newCount === 1 ? "" : "s"}!`);
       seenMap[currentUserEmail] = receivedLikes.length;
       writeLikeSeen(seenMap);
     }
