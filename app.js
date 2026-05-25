@@ -733,14 +733,7 @@ const readLocalUsers = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.users;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_USERS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
+  return [];
 };
 
 const writeLocalUsers = (users) => {
@@ -758,21 +751,13 @@ const writeLocalUsers = (users) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
 };
 
 const readLocalProfiles = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.profiles;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_PROFILES_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (error) {
-    return {};
-  }
+  return {};
 };
 
 const writeLocalProfiles = (profiles) => {
@@ -796,21 +781,13 @@ const writeLocalProfiles = (profiles) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
 };
 
 const readLocalLikes = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.likes;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_LIKES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
+  return [];
 };
 
 const writeLocalLikes = (likes) => {
@@ -830,21 +807,13 @@ const writeLocalLikes = (likes) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_LIKES_KEY, JSON.stringify(likes));
 };
 
 const readLikeSeen = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.likeSeen;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_LIKE_SEEN_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (error) {
-    return {};
-  }
+  return {};
 };
 
 const writeLikeSeen = (seenMap) => {
@@ -866,21 +835,13 @@ const writeLikeSeen = (seenMap) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_LIKE_SEEN_KEY, JSON.stringify(seenMap));
 };
 
 const readLocalChatThreads = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.chatThreads;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_CHAT_THREADS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
+  return [];
 };
 
 const writeLocalChatThreads = (threads) => {
@@ -895,21 +856,13 @@ const writeLocalChatThreads = (threads) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_CHAT_THREADS_KEY, JSON.stringify(threads));
 };
 
 const readLocalChatMessages = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.chatMessages;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_CHAT_MESSAGES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
+  return [];
 };
 
 const writeLocalChatMessages = (messages) => {
@@ -927,21 +880,13 @@ const writeLocalChatMessages = (messages) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_CHAT_MESSAGES_KEY, JSON.stringify(messages));
 };
 
 const readMessageSeen = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.messageSeen;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_MESSAGE_SEEN_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (error) {
-    return {};
-  }
+  return {};
 };
 
 const writeMessageSeen = (seenMap) => {
@@ -963,21 +908,13 @@ const writeMessageSeen = (seenMap) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_MESSAGE_SEEN_KEY, JSON.stringify(seenMap));
 };
 
 const readDashboardFilters = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.dashboardFilters[getCurrentUserFilterKey()] || {};
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_DASH_FILTERS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (error) {
-    return {};
-  }
+  return {};
 };
 
 const writeDashboardFilters = (filters) => {
@@ -998,21 +935,13 @@ const writeDashboardFilters = (filters) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_DASH_FILTERS_KEY, JSON.stringify(filters));
 };
 
 const readMembershipPlans = () => {
   if (isFirebaseDataEnabled()) {
     return REMOTE_DATA_CACHE.memberships;
   }
-  try {
-    const raw = localStorage.getItem(LOCAL_MEMBERSHIPS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (error) {
-    return {};
-  }
+  return {};
 };
 
 const writeMembershipPlans = (plans) => {
@@ -1037,7 +966,6 @@ const writeMembershipPlans = (plans) => {
     }
     return;
   }
-  localStorage.setItem(LOCAL_MEMBERSHIPS_KEY, JSON.stringify(plans));
 };
 
 const normalizeMembershipPlan = (plan) => {
@@ -1278,33 +1206,7 @@ const createLocalUser = ({ firstName, lastName, phone, email, password }) => {
 };
 
 const purgeLegacyLocalTestData = () => {
-  try {
-    const rawUsers = localStorage.getItem(LOCAL_USERS_KEY);
-    if (rawUsers) {
-      const users = JSON.parse(rawUsers);
-      if (Array.isArray(users)) {
-        const filteredUsers = users.filter(
-          (entry) => !LEGACY_TEST_EMAILS.has(normalizeEmail(entry?.email))
-        );
-        localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(filteredUsers));
-      }
-    }
-
-    const rawProfiles = localStorage.getItem(LOCAL_PROFILES_KEY);
-    if (rawProfiles) {
-      const profiles = JSON.parse(rawProfiles);
-      if (profiles && typeof profiles === "object") {
-        Object.keys(profiles).forEach((email) => {
-          if (LEGACY_TEST_EMAILS.has(normalizeEmail(email))) {
-            delete profiles[email];
-          }
-        });
-        localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
-      }
-    }
-  } catch (error) {
-    console.warn("Unable to purge legacy local test data.", error);
-  }
+  return;
 };
 
 const getOppositeGender = (gender) => {
@@ -1420,31 +1322,8 @@ if (signupForm) {
     try {
       const services = getFirebaseServices();
       if (!services) {
-        const firstName = firstNameField.value.trim();
-        const lastName = lastNameField.value.trim();
-        const phone = phoneField.value.trim();
-        const email = normalizeEmailInput(emailField.value);
-        const users = readLocalUsers();
-        const existing = users.find((entry) => entry.email === email);
-        if (existing) {
-          note.textContent = "That email is already in use.";
-          note.classList.add("form-error");
-          return;
-        }
-        users.push(
-          createLocalUser({
-            firstName,
-            lastName,
-            phone,
-            email,
-            password: passwordField.value
-          })
-        );
-        writeLocalUsers(users);
-        note.textContent = "Account saved locally. Redirecting to sign in...";
-        setTimeout(() => {
-          window.location.href = "signin.html";
-        }, 700);
+        note.textContent = "Signup is unavailable right now. Please try again later.";
+        note.classList.add("form-error");
         return;
       }
 
@@ -1510,61 +1389,34 @@ if (signinForm) {
     try {
       const email = normalizeEmailInput(emailField.value);
       const services = getFirebaseServices();
-      if (services) {
-        try {
-          await ensureFirebaseSessionPersistence();
-          const credential = await services.auth.signInWithEmailAndPassword(
-            email,
-            passwordField.value
-          );
-
-          if (credential.user) {
-            await saveFirebaseUserDocument(services, credential.user);
-            setCurrentUserSession(
-              credential.user.email || "",
-              credential.user.displayName || ""
-            );
-          }
-
-          let hasProfile = getSessionValue(SESSION_HAS_PROFILE_KEY) === "true";
-          if (services.db && credential.user?.email) {
-            const profileDoc = await services.db
-              .collection("profiles")
-              .doc(toFirestoreId(credential.user.email))
-              .get();
-            hasProfile = profileDoc.exists;
-          }
-          window.location.href = hasProfile ? "dashboard.html" : "create-profile.html";
-          return;
-        } catch (error) {
-          const code = error && error.code ? error.code : "";
-          const canFallbackToLocal =
-            code === "auth/user-not-found" ||
-            code === "auth/wrong-password" ||
-            code === "auth/invalid-credential";
-          if (!canFallbackToLocal) {
-            throw error;
-          }
-        }
-      }
-
-      const users = readLocalUsers();
-      const localUser = users.find((entry) => entry.email === email);
-      if (!localUser || localUser.passwordHash !== localPasswordHash(passwordField.value)) {
-        note.textContent = "Invalid email or password.";
+      if (!services) {
+        note.textContent = "Login is unavailable right now. Please try again later.";
         note.classList.add("form-error");
         return;
       }
-      setCurrentUserSession(
-        localUser.email || "",
-        `${localUser.firstName || ""} ${localUser.lastName || ""}`.trim()
+      await ensureFirebaseSessionPersistence();
+      const credential = await services.auth.signInWithEmailAndPassword(
+        email,
+        passwordField.value
       );
-      const profiles = readLocalProfiles();
-      const hasProfile =
-        Boolean(profiles[email]) || getSessionValue(SESSION_HAS_PROFILE_KEY) === "true";
-      window.location.href = hasProfile
-        ? "dashboard.html"
-        : "create-profile.html";
+
+      if (credential.user) {
+        await saveFirebaseUserDocument(services, credential.user);
+        setCurrentUserSession(
+          credential.user.email || "",
+          credential.user.displayName || ""
+        );
+      }
+
+      let hasProfile = getSessionValue(SESSION_HAS_PROFILE_KEY) === "true";
+      if (services.db && credential.user?.email) {
+        const profileDoc = await services.db
+          .collection("profiles")
+          .doc(toFirestoreId(credential.user.email))
+          .get();
+        hasProfile = profileDoc.exists;
+      }
+      window.location.href = hasProfile ? "dashboard.html" : "create-profile.html";
     } catch (error) {
       note.textContent = toAuthMessage(error, "Unable to login.");
       note.classList.add("form-error");
