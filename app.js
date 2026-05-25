@@ -3299,12 +3299,47 @@ const primaryPhoto = document.querySelector("[data-primary-photo]");
 whenAppDataReady(() => {
 if (photoInput && photoPreviews && primaryPhoto) {
   const profilePhotoError = document.querySelector("[data-profile-photo-error]");
+  let previewItems = [];
   const setProfilePhotoError = (message = "") => {
     if (!profilePhotoError) {
       return;
     }
     profilePhotoError.textContent = message;
     profilePhotoError.hidden = !message;
+  };
+  const syncPhotoInputFiles = () => {
+    if (typeof DataTransfer === "undefined") {
+      return;
+    }
+    const transfer = new DataTransfer();
+    previewItems.forEach((item) => {
+      if (item?.file instanceof File) {
+        transfer.items.add(item.file);
+      }
+    });
+    photoInput.files = transfer.files;
+  };
+  const buildExistingPreviewItems = (sources) =>
+    sources.map((src) => ({
+      kind: "existing",
+      src
+    }));
+  const buildFilePreviewItems = (files) =>
+    files.map((file) => ({
+      kind: "file",
+      file,
+      src: URL.createObjectURL(file)
+    }));
+  const revokePreviewItemUrls = (items) => {
+    items.forEach((item) => {
+      if (item?.kind === "file" && item.src) {
+        URL.revokeObjectURL(item.src);
+      }
+    });
+  };
+  const resetToExistingPhotos = () => {
+    revokePreviewItemUrls(previewItems);
+    previewItems = buildExistingPreviewItems(createProfileExistingPhotos);
   };
   const renderPreviews = (sources, selectedIndex = 0) => {
     photoPreviews.innerHTML = "";
@@ -3332,8 +3367,40 @@ if (photoInput && photoPreviews && primaryPhoto) {
       label.appendChild(radio);
       label.append(" Profile photo");
 
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "photo-card-remove";
+      removeButton.textContent = "Remove";
+      removeButton.addEventListener("click", () => {
+        const removedItem = previewItems[index];
+        if (removedItem?.kind === "file" && removedItem.src) {
+          URL.revokeObjectURL(removedItem.src);
+        }
+        previewItems = previewItems.filter((_, itemIndex) => itemIndex !== index);
+        if (!previewItems.length) {
+          if (removedItem?.kind === "existing") {
+            createProfileExistingPhotos = [];
+            createProfileExistingPrimaryIndex = 0;
+          } else {
+            photoInput.value = "";
+          }
+          photoPreviews.innerHTML = "";
+          primaryPhoto.value = "";
+          return;
+        }
+        const nextSelectedIndex = Math.min(safeSelectedIndex, previewItems.length - 1);
+        if (removedItem?.kind === "existing") {
+          createProfileExistingPhotos = previewItems.map((item) => item.src);
+          createProfileExistingPrimaryIndex = nextSelectedIndex;
+        } else {
+          syncPhotoInputFiles();
+        }
+        renderPreviews(previewItems, nextSelectedIndex);
+      });
+
       card.appendChild(img);
       card.appendChild(label);
+      card.appendChild(removeButton);
       photoPreviews.appendChild(card);
     });
   };
@@ -3345,11 +3412,11 @@ if (photoInput && photoPreviews && primaryPhoto) {
       setProfilePhotoError(photoValidationMessage);
       photoInput.value = "";
       if (createProfileExistingPhotos.length) {
-        renderPreviews(
-          createProfileExistingPhotos.map((src) => ({ src })),
-          createProfileExistingPrimaryIndex
-        );
+        resetToExistingPhotos();
+        renderPreviews(previewItems, createProfileExistingPrimaryIndex);
       } else {
+        revokePreviewItemUrls(previewItems);
+        previewItems = [];
         photoPreviews.innerHTML = "";
         primaryPhoto.value = "";
       }
@@ -3358,24 +3425,24 @@ if (photoInput && photoPreviews && primaryPhoto) {
     setProfilePhotoError("");
     if (!files.length) {
       if (createProfileExistingPhotos.length) {
-        renderPreviews(
-          createProfileExistingPhotos.map((src) => ({ src })),
-          createProfileExistingPrimaryIndex
-        );
+        resetToExistingPhotos();
+        renderPreviews(previewItems, createProfileExistingPrimaryIndex);
       } else {
+        revokePreviewItemUrls(previewItems);
+        previewItems = [];
         photoPreviews.innerHTML = "";
         primaryPhoto.value = "";
       }
       return;
     }
-    renderPreviews(files.map((file) => ({ src: URL.createObjectURL(file) })), 0);
+    revokePreviewItemUrls(previewItems);
+    previewItems = buildFilePreviewItems(files);
+    renderPreviews(previewItems, 0);
   });
 
   if (createProfileExistingPhotos.length) {
-    renderPreviews(
-      createProfileExistingPhotos.map((src) => ({ src })),
-      createProfileExistingPrimaryIndex
-    );
+    resetToExistingPhotos();
+    renderPreviews(previewItems, createProfileExistingPrimaryIndex);
   }
 }
 });

@@ -830,6 +830,22 @@ a.filter-toggle {
   color: var(--muted);
 }
 
+.photo-card-remove {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.photo-card-remove:hover {
+  border-color: rgba(255, 45, 45, 0.55);
+  color: #ffffff;
+}
+
 label {
   font-weight: 600;
   letter-spacing: 0.2px;
