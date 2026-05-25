@@ -1298,6 +1298,7 @@ if (createProfileForm) {
     .toLowerCase();
   const locationField = createProfileForm.querySelector("[data-location-field]");
   const locationRequestButton = createProfileForm.querySelector("[data-location-request]");
+  const locationSuggestions = createProfileForm.querySelector("[data-location-suggestions]");
   const locationRow = locationField?.closest(".form-row") || null;
   const locationNote =
     createProfileForm.querySelector("[data-location-note]") ||
@@ -1305,7 +1306,14 @@ if (createProfileForm) {
     null;
   const locationState = {
     hasPermission: false,
-    requestInFlight: false
+    requestInFlight: false,
+    hasVerifiedSelection: false,
+    queryRequestId: 0,
+    activeSuggestionIndex: -1,
+    selectedLocationLabel: "",
+    selectedLocationSource: "",
+    suggestions: [],
+    inputTimer: null
   };
   const allProfiles = readLocalProfiles();
   const existingProfile =
@@ -1357,11 +1365,25 @@ if (createProfileForm) {
       return;
     }
     locationField.value = String(city || "").trim();
+    locationState.selectedLocationLabel = locationField.value;
+    locationState.selectedLocationSource = "geolocation";
     locationState.hasPermission = Boolean(locationField.value);
-    if (locationState.hasPermission) {
+    locationState.hasVerifiedSelection = Boolean(locationField.value);
+    if (locationSuggestions) {
+      locationSuggestions.hidden = true;
+      locationSuggestions.innerHTML = "";
+    }
+    if (locationState.hasVerifiedSelection) {
       setLocationAttention(false);
       setLocationNote("City shared from your device.", false);
     }
+  };
+
+  const clearLocationSelection = () => {
+    locationState.hasPermission = false;
+    locationState.hasVerifiedSelection = false;
+    locationState.selectedLocationLabel = "";
+    locationState.selectedLocationSource = "";
   };
 
   const fetchCityFromCoordinates = async (latitude, longitude) => {
@@ -1386,6 +1408,127 @@ if (createProfileForm) {
       throw new Error("City not found");
     }
     return city;
+  };
+
+  const normalizeLocationResult = (entry) => {
+    const address = entry && entry.address ? entry.address : {};
+    const city =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      address.suburb ||
+      "";
+    const state = address.state || address.region || address.county || "";
+    const country = address.country || "";
+    const label = city || entry.name || "";
+    const detail = [state, country].filter(Boolean).join(", ");
+    return {
+      label,
+      detail,
+      displayValue: [label, country].filter(Boolean).join(", "),
+      raw: entry
+    };
+  };
+
+  const renderLocationSuggestions = () => {
+    if (!locationSuggestions) {
+      return;
+    }
+    locationSuggestions.innerHTML = "";
+    if (!locationState.suggestions.length) {
+      locationSuggestions.hidden = true;
+      return;
+    }
+
+    locationState.suggestions.forEach((suggestion, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "location-suggestion";
+      if (index === locationState.activeSuggestionIndex) {
+        button.classList.add("is-active");
+      }
+      button.innerHTML = `<strong>${suggestion.label}</strong><span>${suggestion.detail}</span>`;
+      button.addEventListener("click", () => {
+        if (!locationField) {
+          return;
+        }
+        locationField.value = suggestion.displayValue;
+        locationState.selectedLocationLabel = suggestion.displayValue;
+        locationState.selectedLocationSource = "manual";
+        locationState.hasVerifiedSelection = true;
+        locationState.hasPermission = false;
+        locationState.suggestions = [];
+        locationState.activeSuggestionIndex = -1;
+        locationSuggestions.hidden = true;
+        locationSuggestions.innerHTML = "";
+        setLocationAttention(false);
+        setLocationNote("Real city selected.", false);
+      });
+      locationSuggestions.appendChild(button);
+    });
+
+    locationSuggestions.hidden = false;
+  };
+
+  const fetchLocationSuggestions = async (query) => {
+    const trimmedQuery = String(query || "").trim();
+    if (trimmedQuery.length < 2) {
+      locationState.suggestions = [];
+      locationState.activeSuggestionIndex = -1;
+      renderLocationSuggestions();
+      return;
+    }
+
+    const requestId = ++locationState.queryRequestId;
+    const endpoint =
+      "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&featuretype=city&q=" +
+      encodeURIComponent(trimmedQuery);
+
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          Accept: "application/json"
+        }
+      });
+      if (!response.ok) {
+        throw new Error("Location search failed");
+      }
+      const data = await response.json();
+      if (requestId !== locationState.queryRequestId) {
+        return;
+      }
+      const unique = [];
+      const seen = new Set();
+      data.forEach((entry) => {
+        const normalized = normalizeLocationResult(entry);
+        if (!normalized.label) {
+          return;
+        }
+        const key = normalized.displayValue.toLowerCase();
+        if (seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        unique.push(normalized);
+      });
+      locationState.suggestions = unique;
+      locationState.activeSuggestionIndex = unique.length ? 0 : -1;
+      renderLocationSuggestions();
+      if (!unique.length) {
+        setLocationNote("No matching real cities found yet. Keep typing or share your location.", true);
+      } else {
+        setLocationNote("Choose a real city from the list, or share your location.", false);
+      }
+    } catch (error) {
+      if (requestId !== locationState.queryRequestId) {
+        return;
+      }
+      locationState.suggestions = [];
+      locationState.activeSuggestionIndex = -1;
+      renderLocationSuggestions();
+      setLocationNote("Location search is unavailable right now. You can still use Share my city.", true);
+    }
   };
 
   const requestLocationPermission = async (reason = "button") => {
@@ -1415,12 +1558,11 @@ if (createProfileForm) {
       return true;
     } catch (error) {
       locationState.hasPermission = false;
-      locationField.value = "";
       setLocationAttention(true);
       setLocationNote(
         reason === "submit"
-          ? "Share your city to save your profile. If you dismissed the browser prompt, it has been requested again."
-          : "Location access is required to save your profile. Please allow your browser to share your city.",
+          ? "Select a real city from the list or allow location access before saving."
+          : "Location access was not granted. You can still type and select a real city below.",
         true
       );
       return false;
@@ -1580,6 +1722,13 @@ if (createProfileForm) {
       field.value = String(value);
     });
 
+    if (locationField && existingProfile.location) {
+      locationField.value = String(existingProfile.location).trim();
+      locationState.selectedLocationLabel = locationField.value;
+      locationState.selectedLocationSource = "existing";
+      locationState.hasVerifiedSelection = Boolean(locationField.value);
+    }
+
     const existingLanguages = Array.isArray(existingProfile.languages)
       ? existingProfile.languages
       : [];
@@ -1609,9 +1758,73 @@ if (createProfileForm) {
   }
 
   if (locationField) {
-    locationField.readOnly = true;
-    locationField.setAttribute("aria-readonly", "true");
-    locationField.value = "";
+    if (!locationField.value) {
+      locationField.value = "";
+    }
+    locationField.removeAttribute("readonly");
+    locationField.removeAttribute("aria-readonly");
+    locationField.addEventListener("input", () => {
+      clearLocationSelection();
+      setLocationAttention(false);
+      if (locationSuggestions) {
+        locationSuggestions.hidden = false;
+      }
+      if (locationState.inputTimer) {
+        window.clearTimeout(locationState.inputTimer);
+      }
+      const typedValue = locationField.value.trim();
+      if (!typedValue) {
+        locationState.suggestions = [];
+        locationState.activeSuggestionIndex = -1;
+        renderLocationSuggestions();
+        setLocationNote("Type and select a real city, or allow location access to auto-fill it.", false);
+        return;
+      }
+      setLocationNote("Searching for real cities...", false);
+      locationState.inputTimer = window.setTimeout(() => {
+        fetchLocationSuggestions(typedValue).catch(() => {});
+      }, 250);
+    });
+    locationField.addEventListener("keydown", (event) => {
+      if (!locationState.suggestions.length) {
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        locationState.activeSuggestionIndex =
+          (locationState.activeSuggestionIndex + 1) % locationState.suggestions.length;
+        renderLocationSuggestions();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        locationState.activeSuggestionIndex =
+          (locationState.activeSuggestionIndex - 1 + locationState.suggestions.length) %
+          locationState.suggestions.length;
+        renderLocationSuggestions();
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        const selected = locationState.suggestions[locationState.activeSuggestionIndex];
+        const buttons = locationSuggestions?.querySelectorAll(".location-suggestion");
+        if (selected && buttons && buttons[locationState.activeSuggestionIndex]) {
+          buttons[locationState.activeSuggestionIndex].click();
+        }
+      } else if (event.key === "Escape") {
+        locationState.suggestions = [];
+        locationState.activeSuggestionIndex = -1;
+        renderLocationSuggestions();
+      }
+    });
+    locationField.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        if (locationSuggestions) {
+          locationSuggestions.hidden = true;
+        }
+      }, 120);
+    });
+    locationField.addEventListener("focus", () => {
+      if (locationState.suggestions.length && locationSuggestions) {
+        locationSuggestions.hidden = false;
+      }
+    });
   }
 
   if (locationRequestButton) {
@@ -1622,17 +1835,20 @@ if (createProfileForm) {
 
   if (!("geolocation" in navigator)) {
     setLocationNote(
-      "This browser does not support location sharing. Use a supported browser to finish your profile.",
-      true
+      "This browser cannot share your location, but you can still type and select a real city.",
+      false
     );
     if (locationRequestButton) {
       locationRequestButton.disabled = true;
     }
   } else {
     setLocationNote(
-      "Allow location access to auto-fill your city. You cannot edit this field manually.",
+      "Type and select a real city, or allow location access to auto-fill it.",
       false
     );
+    if (locationState.hasVerifiedSelection) {
+      setLocationNote("Saved city loaded. You can keep it, change it, or use Share my city.", false);
+    }
     if (navigator.permissions?.query) {
       navigator.permissions
         .query({ name: "geolocation" })
@@ -1646,9 +1862,6 @@ if (createProfileForm) {
               return;
             }
             locationState.hasPermission = false;
-            if (locationField) {
-              locationField.value = "";
-            }
           };
         })
         .catch(() => {});
@@ -1677,12 +1890,16 @@ if (createProfileForm) {
       }
       return;
     }
-    if (!locationState.hasPermission || !locationField?.value.trim()) {
+    const hasLocation =
+      Boolean(locationField?.value.trim()) &&
+      (locationState.hasPermission || locationState.hasVerifiedSelection);
+    if (!hasLocation) {
       focusLocationRequirements();
-      await requestLocationPermission("submit");
-      if (!locationState.hasPermission || !locationField?.value.trim()) {
-        return;
-      }
+      setLocationNote(
+        "Select a real city from the suggestions or use Share my city before saving.",
+        true
+      );
+      return;
     }
 
     const fileInput = createProfileForm.querySelector(

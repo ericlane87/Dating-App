@@ -622,6 +622,44 @@ a.filter-toggle {
   box-shadow: 0 0 0 2px rgba(255, 45, 45, 0.45);
 }
 
+.location-suggestions {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255, 45, 45, 0.2);
+  border-radius: 12px;
+  background: rgba(12, 12, 12, 0.96);
+}
+
+.location-suggestion {
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.location-suggestion:hover,
+.location-suggestion:focus-visible,
+.location-suggestion.is-active {
+  border-color: rgba(255, 45, 45, 0.5);
+  background: rgba(255, 45, 45, 0.12);
+  outline: none;
+}
+
+.location-suggestion strong,
+.location-suggestion span {
+  display: block;
+}
+
+.location-suggestion span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .form-row.is-hidden,
 [data-other-tribe-row][hidden] {
   display: none !important;

@@ -45,10 +45,12 @@
             id="profile-location"
             name="location"
             data-location-field
-            placeholder="Share your location to fill in your city"
-            readonly
+            type="text"
+            autocomplete="off"
+            placeholder="Type your city or share your location"
             required
           />
+          <div class="location-suggestions" data-location-suggestions hidden></div>
           <button
             type="button"
             class="button ghost"
@@ -57,7 +59,7 @@
             Share my city
           </button>
           <p class="form-note" data-location-note>
-            Allow location access to auto-fill your city. You cannot edit this field manually.
+            Type and select a real city, or allow location access to auto-fill it.
           </p>
         </div>
         <div class="form-row">
