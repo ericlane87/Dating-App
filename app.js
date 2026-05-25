@@ -1234,9 +1234,16 @@ renderMembershipAd();
 const membershipPage = document.querySelector("[data-membership-page]");
 if (membershipPage) {
   const currentUserEmail = getCurrentUserEmail();
+  const membershipUrl = new URL(window.location.href);
+  const isMembershipOnboarding = membershipUrl.searchParams.get("onboarding") === "1";
   const currentPlanLabel = document.querySelector("[data-current-plan]");
   const currentPlanNote = document.querySelector("[data-current-plan-note]");
   const planButtons = document.querySelectorAll("[data-select-plan]");
+  const continueButton = document.querySelector("[data-membership-continue]");
+
+  const goToMembershipNextStep = () => {
+    window.location.href = "dashboard.html";
+  };
 
   const renderMembershipPage = () => {
     const plan = getMembershipPlan(currentUserEmail);
@@ -1248,6 +1255,9 @@ if (membershipPage) {
         ? `${getMembershipLabel(plan)} is active for ${currentUserEmail}.`
         : "Sign in to attach a plan to your profile.";
     }
+    if (continueButton) {
+      continueButton.hidden = !isMembershipOnboarding || !currentUserEmail;
+    }
 
     planButtons.forEach((button) => {
       const buttonPlan = normalizeMembershipPlan(button.getAttribute("data-select-plan"));
@@ -1256,10 +1266,17 @@ if (membershipPage) {
       if (card) {
         card.classList.toggle("is-current-plan", isActive);
       }
-      button.disabled = !currentUserEmail || isActive;
-      button.textContent = isActive ? "Current plan" : "Choose plan";
+      button.disabled = !currentUserEmail;
+      button.textContent =
+        isActive && isMembershipOnboarding ? "Keep this plan" : isActive ? "Current plan" : "Choose plan";
     });
   };
+
+  if (continueButton) {
+    continueButton.addEventListener("click", () => {
+      goToMembershipNextStep();
+    });
+  }
 
   planButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -1270,6 +1287,10 @@ if (membershipPage) {
       setMembershipPlan(currentUserEmail, button.getAttribute("data-select-plan"));
       syncPersistentTopActionCounts();
       renderMembershipAd();
+      if (isMembershipOnboarding) {
+        goToMembershipNextStep();
+        return;
+      }
       renderMembershipPage();
     });
   });
@@ -1291,6 +1312,8 @@ if (createProfileForm) {
     "[data-looking-for-hidden-inputs]"
   );
   const lookingForError = createProfileForm.querySelector("[data-looking-for-error]");
+  const heightField = createProfileForm.querySelector("#profile-height-cm");
+  const heightError = createProfileForm.querySelector("[data-height-error]");
   const languageSelections = new Map();
   const lookingForSelections = new Map();
   const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
@@ -1327,6 +1350,29 @@ if (createProfileForm) {
     }
     const option = Array.from(select.options).find((entry) => entry.value === value);
     return option ? option.text : value;
+  };
+
+  const validateHeightField = () => {
+    if (!heightField) {
+      return true;
+    }
+    const rawHeight = String(heightField.value || "").trim();
+    if (!rawHeight) {
+      if (heightError) {
+        heightError.hidden = true;
+      }
+      return true;
+    }
+    const parsedHeight = Number(rawHeight);
+    const isValid =
+      /^\d+$/.test(rawHeight) &&
+      Number.isInteger(parsedHeight) &&
+      parsedHeight >= 100 &&
+      parsedHeight <= 250;
+    if (heightError) {
+      heightError.hidden = isValid;
+    }
+    return isValid;
   };
 
   const setLocationAttention = (active) => {
@@ -1685,6 +1731,12 @@ if (createProfileForm) {
     });
   }
 
+  if (heightField) {
+    heightField.addEventListener("input", () => {
+      validateHeightField();
+    });
+  }
+
   renderLanguageSelections();
   renderLookingForSelections();
 
@@ -1901,6 +1953,11 @@ if (createProfileForm) {
       );
       return;
     }
+    if (!validateHeightField()) {
+      heightField?.focus();
+      heightField?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
 
     const fileInput = createProfileForm.querySelector(
       "[data-profile-photo-input]"
@@ -1956,12 +2013,13 @@ if (createProfileForm) {
       createProfileExistingPrimaryIndex = primaryPhotoIndex;
     }
     localStorage.setItem("hasProfile", "true");
-    window.location.href = "dashboard.html";
+    window.location.href = "membership.html?onboarding=1";
   });
 }
 
 const dashboardGrid = document.querySelector("[data-dashboard-grid]");
 if (dashboardGrid) {
+  whenAppDataReady(() => {
   const dashboardEmpty = document.querySelector("[data-dashboard-empty]");
   const likesBadge = document.querySelector("[data-likes-badge]");
   const messagesBadge = document.querySelector("[data-messages-badge]");
@@ -1973,16 +2031,14 @@ if (dashboardGrid) {
   const filterApply = document.querySelector("[data-filter-apply]");
   const filterReset = document.querySelector("[data-filter-reset]");
   const filterClose = document.querySelector("[data-filter-close]");
-  const localUsers = readLocalUsers();
-  const localProfiles = readLocalProfiles();
-  const localLikes = readLocalLikes();
-  const localChatMessages = readLocalChatMessages();
   const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
   if (!currentUserEmail) {
     window.location.href = "signin.html";
   }
+  const localLikes = readLocalLikes();
+  const localChatMessages = readLocalChatMessages();
   const messageCount = currentUserEmail
     ? localChatMessages.filter((entry) => entry && entry.to === currentUserEmail).length
     : 0;
@@ -2008,9 +2064,6 @@ if (dashboardGrid) {
       writeLikeSeen(seenMap);
     }
   }
-  const currentUserProfile = currentUserEmail ? localProfiles[currentUserEmail] : null;
-  const currentGender = String(currentUserProfile?.gender || "").toLowerCase();
-  const oppositeGender = getOppositeGender(currentGender);
   const used = new Set();
   let dashboardFilters = readDashboardFilters();
 
@@ -2048,6 +2101,11 @@ if (dashboardGrid) {
   };
 
   const renderDashboardCards = () => {
+    const localUsers = readLocalUsers();
+    const localProfiles = readLocalProfiles();
+    const currentUserProfile = currentUserEmail ? localProfiles[currentUserEmail] : null;
+    const currentGender = String(currentUserProfile?.gender || "").toLowerCase();
+    const oppositeGender = getOppositeGender(currentGender);
     const cards = [];
     used.clear();
     dashboardGrid.innerHTML = "";
@@ -2197,6 +2255,7 @@ if (dashboardGrid) {
   }
 
   renderDashboardCards();
+  });
 }
 
 const likedGrid = document.querySelector("[data-liked-grid]");
