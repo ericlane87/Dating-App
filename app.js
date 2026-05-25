@@ -2351,10 +2351,6 @@ if (createProfileForm) {
           return;
         }
       }
-      if (!photos.length) {
-        alert("Please add at least one photo.");
-        return;
-      }
       if (primaryInput.value === "") {
         primaryInput.value = String(
           Math.min(createProfileExistingPrimaryIndex, photos.length - 1)
