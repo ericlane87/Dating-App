@@ -196,6 +196,38 @@ const setBadgeCount = (selector, count) => {
   });
 };
 
+const ensureToastStack = () => {
+  let stack = document.querySelector("[data-toast-stack]");
+  if (stack) {
+    return stack;
+  }
+  stack = document.createElement("div");
+  stack.className = "toast-stack";
+  stack.setAttribute("data-toast-stack", "");
+  document.body.appendChild(stack);
+  return stack;
+};
+
+const showToast = (message) => {
+  if (!message) {
+    return;
+  }
+  const stack = ensureToastStack();
+  const toast = document.createElement("div");
+  toast.className = "toast-card";
+  toast.textContent = message;
+  stack.appendChild(toast);
+  window.setTimeout(() => {
+    toast.classList.add("is-visible");
+  }, 10);
+  window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+    window.setTimeout(() => {
+      toast.remove();
+    }, 240);
+  }, 3200);
+};
+
 const hideUpgradeButtons = () => {
   document.querySelectorAll("[data-upgrade-button]").forEach((button) => {
     button.hidden = true;
@@ -312,6 +344,11 @@ const REMOTE_DATA_CACHE = {
   memberships: {}
 };
 
+const FIREBASE_LIVE_STATE = {
+  currentEmail: "",
+  unsubscribes: []
+};
+
 const isFirebaseDataEnabled = () => Boolean(getFirebaseServices()?.db);
 
 const normalizeEmail = (value) => normalizeEmailInput(value);
@@ -340,6 +377,102 @@ const safeFirestoreGet = async (promise, fallback, label) => {
     console.warn(`Skipping Firebase read for ${label}.`, error);
     return fallback;
   }
+};
+
+const clearFirebaseLiveSubscriptions = () => {
+  FIREBASE_LIVE_STATE.unsubscribes.forEach((unsubscribe) => {
+    try {
+      unsubscribe();
+    } catch (error) {
+      console.warn("Unable to unsubscribe Firebase listener.", error);
+    }
+  });
+  FIREBASE_LIVE_STATE.unsubscribes = [];
+  FIREBASE_LIVE_STATE.currentEmail = "";
+};
+
+const startFirebaseLiveSubscriptions = (authEmail) => {
+  const services = getFirebaseServices();
+  if (!services?.db || !authEmail) {
+    return;
+  }
+  if (FIREBASE_LIVE_STATE.currentEmail === authEmail) {
+    return;
+  }
+
+  clearFirebaseLiveSubscriptions();
+  FIREBASE_LIVE_STATE.currentEmail = authEmail;
+
+  const register = (unsubscribe) => {
+    if (typeof unsubscribe === "function") {
+      FIREBASE_LIVE_STATE.unsubscribes.push(unsubscribe);
+    }
+  };
+
+  let likesInitialized = false;
+  register(
+    services.db.collection("likes").where("to", "==", authEmail).onSnapshot((snapshot) => {
+      const inboundLikes = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
+      const addedCount = likesInitialized
+        ? snapshot.docChanges().filter((change) => change.type === "added").length
+        : 0;
+      REMOTE_DATA_CACHE.likes = [
+        ...REMOTE_DATA_CACHE.likes.filter((entry) => normalizeEmail(entry?.to) !== authEmail),
+        ...inboundLikes
+      ];
+      likesInitialized = true;
+
+      if (pageName === "liked-you") {
+        const seenMap = readLikeSeen();
+        seenMap[authEmail] = inboundLikes.length;
+        writeLikeSeen(seenMap);
+      }
+
+      syncPersistentTopActionCounts();
+      if (addedCount > 0 && pageName !== "liked-you") {
+        showToast(
+          addedCount === 1 ? "You received a new like." : `You received ${addedCount} new likes.`
+        );
+      }
+    })
+  );
+
+  let messagesInitialized = false;
+  register(
+    services.db.collection("chatMessages").where("to", "==", authEmail).onSnapshot((snapshot) => {
+      const inboundMessages = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
+      const addedMessages = messagesInitialized
+        ? snapshot.docChanges()
+          .filter((change) => change.type === "added")
+          .map((change) => ({ id: change.doc.id, ...(change.doc.data() || {}) }))
+        : [];
+      REMOTE_DATA_CACHE.chatMessages = [
+        ...REMOTE_DATA_CACHE.chatMessages.filter((entry) => normalizeEmail(entry?.to) !== authEmail),
+        ...inboundMessages
+      ];
+      messagesInitialized = true;
+
+      if (pageName === "chats") {
+        const seenMap = readMessageSeen();
+        seenMap[authEmail] = inboundMessages.length;
+        writeMessageSeen(seenMap);
+      }
+
+      syncPersistentTopActionCounts();
+      if (addedMessages.length > 0 && pageName !== "chats") {
+        const profiles = readLocalProfiles();
+        const latestMessage = addedMessages[addedMessages.length - 1];
+        const senderEmail = normalizeEmail(latestMessage.from);
+        const senderName =
+          profiles[senderEmail]?.profileName || senderEmail || "Someone";
+        showToast(
+          addedMessages.length === 1
+            ? `New message from ${senderName}.`
+            : `${addedMessages.length} new messages.`
+        );
+      }
+    })
+  );
 };
 
 const loadFirebaseAppData = async () => {
@@ -484,6 +617,7 @@ const loadFirebaseAppData = async () => {
     Object.entries(memberships).map(([key, value]) => [key, value.plan || "free"])
   );
   REMOTE_DATA_CACHE.loaded = true;
+  startFirebaseLiveSubscriptions(authEmail);
 };
 
 const appDataReady = loadFirebaseAppData().catch((error) => {
@@ -926,11 +1060,14 @@ const syncPersistentTopActionCounts = () => {
   const inboundCount = localChatMessages.filter(
     (entry) => entry && entry.to === currentUserEmail
   ).length;
+  const likeSeenMap = readLikeSeen();
+  const seenLikeCount = Number(likeSeenMap[currentUserEmail] || 0);
+  const unreadLikeCount = Math.max(0, receivedLikes.length - seenLikeCount);
   const messageSeenMap = readMessageSeen();
   const seenMessageCount = Number(messageSeenMap[currentUserEmail] || 0);
   const unreadMessageCount = Math.max(0, inboundCount - seenMessageCount);
 
-  setBadgeCount("[data-likes-badge]", receivedLikes.length);
+  setBadgeCount("[data-likes-badge]", unreadLikeCount);
   setBadgeCount("[data-messages-badge]", unreadMessageCount);
 };
 
@@ -2379,14 +2516,15 @@ if (likedGrid) {
     ? localLikes.filter((entry) => entry.to === currentUserEmail)
     : [];
 
-  if (likesBadge) {
-    setBadgeCount("[data-likes-badge]", receivedLikes.length);
-  }
-
   if (currentUserEmail) {
     const seenMap = readLikeSeen();
     seenMap[currentUserEmail] = receivedLikes.length;
     writeLikeSeen(seenMap);
+    if (likesBadge) {
+      setBadgeCount("[data-likes-badge]", 0);
+    }
+  } else if (likesBadge) {
+    setBadgeCount("[data-likes-badge]", receivedLikes.length);
   }
 
   const latestBySender = new Map();
@@ -2472,7 +2610,10 @@ if (chatsApp) {
 
   if (likesBadge && currentUserEmail) {
     const receivedLikes = likes.filter((entry) => entry.to === currentUserEmail);
-    setBadgeCount("[data-likes-badge]", receivedLikes.length);
+    const likeSeenMap = readLikeSeen();
+    const seenLikeCount = Number(likeSeenMap[currentUserEmail] || 0);
+    const unreadLikeCount = Math.max(0, receivedLikes.length - seenLikeCount);
+    setBadgeCount("[data-likes-badge]", unreadLikeCount);
   }
 
   if (!currentUserEmail || !threadList || !messageList || !composeForm || !composeInput) {
